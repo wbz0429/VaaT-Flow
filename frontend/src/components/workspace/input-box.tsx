@@ -56,6 +56,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { getBackendBaseURL } from "@/core/config";
+import { getThreadFollowupSuggestions } from "@/core/demo/followups";
 import { useI18n } from "@/core/i18n/hooks";
 import { useModels } from "@/core/models/hooks";
 import type { AgentThreadContext } from "@/core/threads";
@@ -178,6 +179,19 @@ export function InputBox({
       mode: nextMode,
     });
   }, [context, models, onContextChange]);
+
+  useEffect(() => {
+    if (!initialValue) {
+      return;
+    }
+
+    const current = textInput.value ?? "";
+    if (current.trim().length > 0) {
+      return;
+    }
+
+    textInput.setInput(initialValue);
+  }, [initialValue, textInput]);
 
   const selectedModel = useMemo(() => {
     if (models.length === 0) {
@@ -308,7 +322,15 @@ export function InputBox({
       return;
     }
 
-    if (disabled || isMock) {
+    if (disabled) {
+      return;
+    }
+
+    if (isMock) {
+      const suggestions = getThreadFollowupSuggestions(thread as never).slice(0, 5);
+      setFollowupsHidden(false);
+      setFollowupsLoading(false);
+      setFollowups(suggestions);
       return;
     }
 
@@ -369,7 +391,7 @@ export function InputBox({
       });
 
     return () => controller.abort();
-  }, [context.model_name, disabled, isMock, status, thread.messages, threadId]);
+  }, [context.model_name, disabled, isMock, status, thread, thread.messages, threadId]);
 
   return (
     <div ref={promptRootRef} className="relative">
@@ -400,7 +422,6 @@ export function InputBox({
             disabled={disabled}
             placeholder={t.inputBox.placeholder}
             autoFocus={autoFocus}
-            defaultValue={initialValue}
           />
         </PromptInputBody>
         <PromptInputFooter className="flex">

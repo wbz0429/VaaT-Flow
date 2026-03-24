@@ -90,6 +90,7 @@ export function ArtifactFileDetail({
   });
 
   const displayContent = content ?? "";
+  const uniqueArtifacts = Array.from(new Set(artifacts ?? []));
 
   const [viewMode, setViewMode] = useState<"code" | "preview">("code");
   const [isInstalling, setIsInstalling] = useState(false);
@@ -137,7 +138,7 @@ export function ArtifactFileDetail({
                 </SelectTrigger>
                 <SelectContent className="select-none">
                   <SelectGroup>
-                    {(artifacts ?? []).map((filepath) => (
+                    {uniqueArtifacts.map((filepath) => (
                       <SelectItem key={filepath} value={filepath}>
                         {getFileName(filepath)}
                       </SelectItem>

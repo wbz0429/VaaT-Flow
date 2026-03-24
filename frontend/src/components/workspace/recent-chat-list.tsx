@@ -2,7 +2,7 @@
 
 import { MoreHorizontal, Pencil, Share2, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
@@ -31,6 +31,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  useMockDeleteThread,
+  useMockRenameThread,
+  useMockThreads,
+} from "@/core/demo/workspace-hooks";
 import { useI18n } from "@/core/i18n/hooks";
 import {
   useDeleteThread,
@@ -44,10 +49,18 @@ export function RecentChatList() {
   const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { thread_id: threadIdFromPath } = useParams<{ thread_id: string }>();
-  const { data: threads = [] } = useThreads();
-  const { mutate: deleteThread } = useDeleteThread();
-  const { mutate: renameThread } = useRenameThread();
+  const isMock = searchParams.get("mock") === "true";
+  const { data: realThreads = [] } = useThreads();
+  const { data: mockThreads = [] } = useMockThreads();
+  const threads = isMock ? mockThreads : realThreads;
+  const { mutate: deleteThreadReal } = useDeleteThread();
+  const { mutate: renameThreadReal } = useRenameThread();
+  const { mutate: deleteThreadMock } = useMockDeleteThread();
+  const { mutate: renameThreadMock } = useMockRenameThread();
+  const deleteThread = isMock ? deleteThreadMock : deleteThreadReal;
+  const renameThread = isMock ? renameThreadMock : renameThreadReal;
 
   // Rename dialog state
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -67,10 +80,12 @@ export function RecentChatList() {
             nextThreadId = threads[threadIndex - 1]!.thread_id;
           }
         }
-        void router.push(`/workspace/chats/${nextThreadId}`);
+        void router.push(
+          isMock ? `/workspace/chats/${nextThreadId}?mock=true` : `/workspace/chats/${nextThreadId}`,
+        );
       }
     },
-    [deleteThread, router, threadIdFromPath, threads],
+    [deleteThread, isMock, router, threadIdFromPath, threads],
   );
 
   const handleRenameClick = useCallback(
@@ -100,7 +115,7 @@ export function RecentChatList() {
         window.location.hostname === "127.0.0.1";
       // On localhost: use Vercel URL; On production: use current origin
       const baseUrl = isLocalhost ? VERCEL_URL : window.location.origin;
-      const shareUrl = `${baseUrl}/workspace/chats/${threadId}`;
+      const shareUrl = `${baseUrl}/workspace/chats/${threadId}${isMock ? "?mock=true" : ""}`;
       try {
         await navigator.clipboard.writeText(shareUrl);
         toast.success(t.clipboard.linkCopied);
@@ -108,7 +123,7 @@ export function RecentChatList() {
         toast.error(t.clipboard.failedToCopyToClipboard);
       }
     },
-    [t],
+    [isMock, t],
   );
   if (threads.length === 0) {
     return null;
@@ -126,6 +141,7 @@ export function RecentChatList() {
             <div className="flex w-full flex-col gap-1">
               {threads.map((thread) => {
                 const isActive = pathOfThread(thread.thread_id) === pathname;
+                const href = `${pathOfThread(thread.thread_id)}${isMock ? "?mock=true" : ""}`;
                 return (
                   <SidebarMenuItem
                     key={thread.thread_id}
@@ -135,7 +151,7 @@ export function RecentChatList() {
                       <div>
                         <Link
                           className="text-muted-foreground block w-full whitespace-nowrap group-hover/side-menu-item:overflow-hidden"
-                          href={pathOfThread(thread.thread_id)}
+                          href={href}
                         >
                           {titleOfThread(thread)}
                         </Link>

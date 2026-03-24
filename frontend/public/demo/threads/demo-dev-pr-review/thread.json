@@ -1,0 +1,760 @@
+{
+  "thread_id": "demo-dev-pr-review",
+  "created_at": "2026-03-22T08:00:00.000Z",
+  "updated_at": "2026-03-24T11:46:36.253Z",
+  "values": {
+    "title": "订单聚合接口 PR 审查",
+    "messages": [
+      {
+        "id": "dev-pr-user-1",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "帮我看一下订单聚合接口的 PR，有没有性能和稳定性风险。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-ai-1",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我先看 diff、SQL 路径和缓存 key 是否会引入高并发下的隐患。"
+        },
+        "tool_calls": [
+          {
+            "id": "dev-pr-tool-1",
+            "name": "GitHub 集成",
+            "args": {
+              "pr": 142,
+              "repo": "org/order-service"
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "dev-pr-tool-result-1",
+        "type": "tool",
+        "name": "GitHub 集成",
+        "tool_call_id": "dev-pr-tool-1",
+        "content": "PR 变更 3 个文件，新增订单详情聚合与缓存逻辑。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-ai-2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我发现两个主要风险：订单明细聚合存在 N+1 查询倾向，缓存 key 过粗可能导致脏读。建议合并前修复。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-ai-3",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "审查报告和可贴到 PR 的评论已经整理好。"
+          }
+        ],
+        "additional_kwargs": {},
+        "tool_calls": [
+          {
+            "id": "dev-pr-present-1",
+            "name": "present_files",
+            "args": {
+              "filepaths": [
+                "/mnt/user-data/outputs/dev/pr-review-report.md",
+                "/mnt/user-data/outputs/dev/pr-review-comments.md"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mock-human-1774346016870",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "帮我看一下订单聚合接口的 PR，有没有性能和稳定性风险。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "fallback-1774346016870",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我已经收到你的追问：\"帮我看一下订单聚合接口的 PR，有没有性能和稳定性风险。\"。当前这个 demo 版本更适合演示固定的高价值交互路径，我建议你继续追问这些方向：\n1. 把最关键的两个问题分别给出修复建议，最好带到函数级别。\n2. 如果今天必须上线，你会建议带着哪些限制条件发布？\n3. 把这些问题整理成可以直接贴到 PR 里的 review comment。\n\n如果你愿意，我也可以继续围绕「PR 风险审查」补充说明。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mock-human-1774346024863",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "把最关键的两个问题分别给出修复建议，最好带到函数级别。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-fix-1",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "两个最关键的问题和修复建议：\n1. `订单明细循环查询`：把逐单查明细改成批量聚合查询，避免高并发下 N+1；\n2. `缓存 key 过粗`：现在只按 `orgId` 缓存，建议补上时间窗和筛选条件，避免错误复用旧结果。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mock-human-1774351495680",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "帮我看一下订单聚合接口的 PR，有没有性能和稳定性风险。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-think-1",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我先确认这是不是表面上的代码风格问题，还是会真正影响线上性能和稳定性。重点会看 diff、SQL 路径、缓存 key 和降级能力。"
+        }
+      },
+      {
+        "id": "dev-pr-tool-1",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "先拿到 PR 变更范围，避免只盯一个函数看不到整体影响。"
+        },
+        "tool_calls": [
+          {
+            "id": "dev-pr-tool-1-tool",
+            "name": "GitHub 集成",
+            "args": {
+              "pr": 142,
+              "repo": "org/order-service",
+              "files": true
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "dev-pr-tool-1-result",
+        "type": "tool",
+        "name": "GitHub 集成",
+        "tool_call_id": "dev-pr-tool-1-tool",
+        "content": "PR #142 共改动 3 个文件：新增订单聚合逻辑、缓存层封装和接口出参拼装。核心风险集中在明细查询和缓存复用策略。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-tool-2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我再把接口调用链展开，看这次改动是不是把原来稳定的链路变成了高并发下容易放大的路径。"
+        },
+        "tool_calls": [
+          {
+            "id": "dev-pr-tool-2-tool",
+            "name": "调用链分析",
+            "args": {
+              "endpoint": "/api/orders/aggregate",
+              "compare": "before_vs_after"
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "dev-pr-tool-2-result",
+        "type": "tool",
+        "name": "调用链分析",
+        "tool_call_id": "dev-pr-tool-2-tool",
+        "content": "新逻辑在高并发下会对每个订单逐条拉明细，等价于把单次查询成本放大成 N+1。低流量下不明显，但一旦批量订单请求上来，数据库压力会陡增。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-tool-3",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "最后看缓存 key 设计，因为这类问题最容易在 review 时被忽略，但上线后最难解释。"
+        },
+        "tool_calls": [
+          {
+            "id": "dev-pr-tool-3-tool",
+            "name": "缓存策略评估",
+            "args": {
+              "keys": [
+                "orgId"
+              ],
+              "missing": [
+                "dateRange",
+                "filters"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "dev-pr-tool-3-result",
+        "type": "tool",
+        "name": "缓存策略评估",
+        "tool_call_id": "dev-pr-tool-3-tool",
+        "content": "当前缓存 key 只带 `orgId`，没有时间窗和筛选条件，存在跨查询误命中风险。轻则返回旧结果，重则导致业务侧误判数据。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-summary-1",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "如果只讲老板或负责人最关心的结论：这个 PR 不是不能上，而是 `当前状态下上线风险偏高`。最大问题不是代码写法，而是它同时碰到了性能放大点和数据正确性风险点。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-summary-2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我会把风险分成两层：\n1. `性能层`：订单明细查询存在 N+1，流量上来后 P95 很容易拉高；\n2. `正确性层`：缓存 key 过粗，可能返回错误聚合结果。\n如果今天一定要上线，必须加灰度、监控和降级。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-present-1",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我已经整理出完整审查报告、可直接贴 PR 的评论，以及上线前 checklist。"
+          }
+        ],
+        "additional_kwargs": {},
+        "tool_calls": [
+          {
+            "id": "dev-pr-present-1-present",
+            "name": "present_files",
+            "args": {
+              "filepaths": [
+                "/mnt/user-data/outputs/dev/pr-review-report.md",
+                "/mnt/user-data/outputs/dev/pr-review-comments.md",
+                "/mnt/user-data/outputs/dev/pr-release-checklist.md"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mock-human-1774351506523",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "如果今天必须上线，你会建议带着哪些限制条件发布？"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-release-1",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "如果今天必须上线，我会建议带 3 个限制条件：\n1. 灰度到 10% 流量；\n2. 打开接口超时和缓存命中率监控；\n3. 把订单详情聚合走降级开关，一旦 P95 超过 800ms 立即回退旧逻辑。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mock-human-1774351512737",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "如果不能灰度，你会怎么判断是否延期发布？"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "fallback-1774351512737",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我已经收到你的追问：\"如果不能灰度，你会怎么判断是否延期发布？\"。当前这个 demo 版本更适合演示固定的高价值交互路径，我建议你继续追问这些方向：\n1. 把最关键的两个问题分别给出修复建议，最好带到函数级别。\n2. 如果今天必须上线，你会建议带着哪些限制条件发布？\n3. 把这些问题整理成可以直接贴到 PR 里的 review comment。\n\n如果你愿意，我也可以继续围绕「PR 风险审查」补充说明。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mock-human-1774351516295",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "把最关键的两个问题分别给出修复建议，最好带到函数级别。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-fix-think-1",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我把建议压到函数级别，这样工程负责人可以直接拿去安排修改。"
+        }
+      },
+      {
+        "id": "dev-fix-1__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "两个最关键的问题和修复建议：\n1. `订单明细循环查询`：把逐单查明细改成批量聚合查询，避免高并发下 N+1；\n2. `缓存 key 过粗`：现在只按 `orgId` 缓存，建议补上时间窗和筛选条件，避免错误复用旧结果。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-fix-2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我顺手补了一版上线前 checklist，方便你直接落地。"
+          }
+        ],
+        "additional_kwargs": {},
+        "tool_calls": [
+          {
+            "id": "dev-fix-2-present",
+            "name": "present_files",
+            "args": {
+              "filepaths": [
+                "/mnt/user-data/outputs/dev/pr-release-checklist.md"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mock-human-1774351526117",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "按函数级别给我更具体一点。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-fix-think-1__2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我把建议压到函数级别，这样工程负责人可以直接拿去安排修改。"
+        }
+      },
+      {
+        "id": "dev-fix-1__3",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "两个最关键的问题和修复建议：\n1. `订单明细循环查询`：把逐单查明细改成批量聚合查询，避免高并发下 N+1；\n2. `缓存 key 过粗`：现在只按 `orgId` 缓存，建议补上时间窗和筛选条件，避免错误复用旧结果。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-fix-2__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我顺手补了一版上线前 checklist，方便你直接落地。"
+          }
+        ],
+        "additional_kwargs": {},
+        "tool_calls": [
+          {
+            "id": "dev-fix-2-present",
+            "name": "present_files",
+            "args": {
+              "filepaths": [
+                "/mnt/user-data/outputs/dev/pr-release-checklist.md"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mock-human-1774352752378",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "帮我看一下订单聚合接口的 PR，有没有性能和稳定性风险。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-think-1__2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我先确认这是不是表面上的代码风格问题，还是会真正影响线上性能和稳定性。重点会看 diff、SQL 路径、缓存 key 和降级能力。"
+        }
+      },
+      {
+        "id": "dev-pr-tool-1__2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "先拿到 PR 变更范围，避免只盯一个函数看不到整体影响。"
+        },
+        "tool_calls": [
+          {
+            "id": "dev-pr-tool-1-tool",
+            "name": "GitHub 集成",
+            "args": {
+              "pr": 142,
+              "repo": "org/order-service",
+              "files": true
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "dev-pr-tool-1-result__2",
+        "type": "tool",
+        "name": "GitHub 集成",
+        "tool_call_id": "dev-pr-tool-1-tool",
+        "content": "PR #142 共改动 3 个文件：新增订单聚合逻辑、缓存层封装和接口出参拼装。核心风险集中在明细查询和缓存复用策略。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-tool-2__2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我再把接口调用链展开，看这次改动是不是把原来稳定的链路变成了高并发下容易放大的路径。"
+        },
+        "tool_calls": [
+          {
+            "id": "dev-pr-tool-2-tool",
+            "name": "调用链分析",
+            "args": {
+              "endpoint": "/api/orders/aggregate",
+              "compare": "before_vs_after"
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "dev-pr-tool-2-result__2",
+        "type": "tool",
+        "name": "调用链分析",
+        "tool_call_id": "dev-pr-tool-2-tool",
+        "content": "新逻辑在高并发下会对每个订单逐条拉明细，等价于把单次查询成本放大成 N+1。低流量下不明显，但一旦批量订单请求上来，数据库压力会陡增。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-tool-3__2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "最后看缓存 key 设计，因为这类问题最容易在 review 时被忽略，但上线后最难解释。"
+        },
+        "tool_calls": [
+          {
+            "id": "dev-pr-tool-3-tool",
+            "name": "缓存策略评估",
+            "args": {
+              "keys": [
+                "orgId"
+              ],
+              "missing": [
+                "dateRange",
+                "filters"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "dev-pr-tool-3-result__2",
+        "type": "tool",
+        "name": "缓存策略评估",
+        "tool_call_id": "dev-pr-tool-3-tool",
+        "content": "当前缓存 key 只带 `orgId`，没有时间窗和筛选条件，存在跨查询误命中风险。轻则返回旧结果，重则导致业务侧误判数据。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-summary-1__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "如果只讲老板或负责人最关心的结论：这个 PR 不是不能上，而是 `当前状态下上线风险偏高`。最大问题不是代码写法，而是它同时碰到了性能放大点和数据正确性风险点。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-summary-2__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我会把风险分成两层：\n1. `性能层`：订单明细查询存在 N+1，流量上来后 P95 很容易拉高；\n2. `正确性层`：缓存 key 过粗，可能返回错误聚合结果。\n如果今天一定要上线，必须加灰度、监控和降级。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-pr-present-1__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我已经整理出完整审查报告、可直接贴 PR 的评论，以及上线前 checklist。"
+          }
+        ],
+        "additional_kwargs": {},
+        "tool_calls": [
+          {
+            "id": "dev-pr-present-1-present",
+            "name": "present_files",
+            "args": {
+              "filepaths": [
+                "/mnt/user-data/outputs/dev/pr-review-report.md",
+                "/mnt/user-data/outputs/dev/pr-review-comments.md",
+                "/mnt/user-data/outputs/dev/pr-release-checklist.md"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mock-human-1774352780881",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "帮我看一下订单聚合接口的 PR，有没有性能和稳定性风险。\n把最关键的两个问题分别给出修复建议，最好带到函数级别。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-fix-think-1__2__2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我把建议压到函数级别，这样工程负责人可以直接拿去安排修改。"
+        }
+      },
+      {
+        "id": "dev-fix-1__2__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "两个最关键的问题和修复建议：\n1. `订单明细循环查询`：把逐单查明细改成批量聚合查询，避免高并发下 N+1；\n2. `缓存 key 过粗`：现在只按 `orgId` 缓存，建议补上时间窗和筛选条件，避免错误复用旧结果。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-fix-2__2__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我顺手补了一版上线前 checklist，方便你直接落地。"
+          }
+        ],
+        "additional_kwargs": {},
+        "tool_calls": [
+          {
+            "id": "dev-fix-2-present",
+            "name": "present_files",
+            "args": {
+              "filepaths": [
+                "/mnt/user-data/outputs/dev/pr-release-checklist.md"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mock-human-1774352785430",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "帮我看一下订单聚合接口的 PR，有没有性能和稳定性风险。\n补一个上线前自测清单。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-release-1__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "如果今天必须上线，我会建议带 3 个限制条件：\n1. 灰度到 10% 流量；\n2. 打开接口超时和缓存命中率监控；\n3. 把订单详情聚合走降级开关，一旦 P95 超过 800ms 立即回退旧逻辑。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mock-human-1774352791649",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "帮我看一下订单聚合接口的 PR，有没有性能和稳定性风险。\n如果不能灰度，你会怎么判断是否延期发布？"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "fallback-1774352791649",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我已经收到你的追问：\"帮我看一下订单聚合接口的 PR，有没有性能和稳定性风险。\n如果不能灰度，你会怎么判断是否延期发布？\"。当前这个 demo 版本更适合演示固定的高价值交互路径，我建议你继续追问这些方向：\n1. 把最关键的两个问题分别给出修复建议，最好带到函数级别。\n2. 如果今天必须上线，你会建议带着哪些限制条件发布？\n3. 把这些问题整理成可以直接贴到 PR 里的 review comment。\n\n如果你愿意，我也可以继续围绕「PR 风险审查」补充说明。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mock-human-1774352796253",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "帮我看一下订单聚合接口的 PR，有没有性能和稳定性风险。\n把最关键的两个问题分别给出修复建议，最好带到函数级别。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-fix-think-1__2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我把建议压到函数级别，这样工程负责人可以直接拿去安排修改。"
+        }
+      },
+      {
+        "id": "dev-fix-1__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "两个最关键的问题和修复建议：\n1. `订单明细循环查询`：把逐单查明细改成批量聚合查询，避免高并发下 N+1；\n2. `缓存 key 过粗`：现在只按 `orgId` 缓存，建议补上时间窗和筛选条件，避免错误复用旧结果。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "dev-fix-2__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我顺手补了一版上线前 checklist，方便你直接落地。"
+          }
+        ],
+        "additional_kwargs": {},
+        "tool_calls": [
+          {
+            "id": "dev-fix-2-present",
+            "name": "present_files",
+            "args": {
+              "filepaths": [
+                "/mnt/user-data/outputs/dev/pr-release-checklist.md"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      }
+    ],
+    "artifacts": [
+      "/mnt/user-data/outputs/dev/pr-review-report.md",
+      "/mnt/user-data/outputs/dev/pr-review-comments.md",
+      "/mnt/user-data/outputs/dev/pr-release-checklist.md"
+    ],
+    "todos": [
+      {
+        "content": "把订单明细查询改成批量聚合",
+        "status": "in_progress"
+      },
+      {
+        "content": "补缓存 key 的时间窗和筛选维度",
+        "status": "pending"
+      },
+      {
+        "content": "上线前配置灰度和 P95 监控",
+        "status": "pending"
+      }
+    ],
+    "demo": {
+      "scenarioId": "dev",
+      "taskId": "dev-pr-review",
+      "suggestions": [
+        "按函数级别给我更具体一点。",
+        "补一个上线前自测清单。"
+      ]
+    }
+  }
+}

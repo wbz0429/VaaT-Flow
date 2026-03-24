@@ -33,8 +33,15 @@ function createCompatibleClient(isMock?: boolean): LangGraphClient {
   return client;
 }
 
-let _singleton: LangGraphClient | null = null;
+const clientCache = new Map<string, LangGraphClient>();
 export function getAPIClient(isMock?: boolean): LangGraphClient {
-  _singleton ??= createCompatibleClient(isMock);
-  return _singleton;
+  const baseUrl = getLangGraphBaseURL(isMock);
+  const cached = clientCache.get(baseUrl);
+  if (cached) {
+    return cached;
+  }
+
+  const client = createCompatibleClient(isMock);
+  clientCache.set(baseUrl, client);
+  return client;
 }

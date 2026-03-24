@@ -1,0 +1,592 @@
+{
+  "thread_id": "demo-mgmt-weekly-dashboard",
+  "created_at": "2026-03-23T08:30:00.000Z",
+  "updated_at": "2026-03-24T12:36:42.508Z",
+  "values": {
+    "title": "本周进度与风险看板",
+    "messages": [
+      {
+        "id": "mgmt-w-user-1",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "给我看一下本周各团队的开发进度，有没有延期风险。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-w-ai-1",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我先把前端、后端、测试三组的 Sprint 完成度、blocker 和里程碑依赖对齐。"
+        },
+        "tool_calls": [
+          {
+            "id": "mgmt-w-tool-1",
+            "name": "Sprint 汇总",
+            "args": {
+              "week": "2026-W13"
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mgmt-w-tool-result-1",
+        "type": "tool",
+        "name": "Sprint 汇总",
+        "tool_call_id": "mgmt-w-tool-1",
+        "content": "前端 83% 正常，后端 57% 有延期风险，测试等待后端稳定交付。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-w-ai-2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "整体看，后端组是主要风险源。认证模块返工和报表需求膨胀已经影响试点里程碑，建议立即做优先级收敛和资源补位。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-w-ai-3",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "周进度看板已生成。"
+          }
+        ],
+        "additional_kwargs": {},
+        "tool_calls": [
+          {
+            "id": "mgmt-w-present-1",
+            "name": "present_files",
+            "args": {
+              "filepaths": [
+                "/mnt/user-data/outputs/mgmt/weekly-dashboard.html"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mock-human-1774345628638",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "给我看一下本周各团队的开发进度，有没有延期风险。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "fallback-1774345628639",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我已经收到你的追问：\"给我看一下本周各团队的开发进度，有没有延期风险。\"。当前这个 demo 版本更适合演示固定的高价值交互路径，我建议你继续追问这些方向：\n1. 后端组为什么会延期，把影响里程碑的原因讲清楚。\n2. 如果要把风险降下来，你建议怎么调配人力和优先级？\n3. 把这周最需要老板关注的 3 个点总结成周会摘要。\n\n如果你愿意，我也可以继续围绕「周进度与风险看板」补充说明。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mock-human-1774351452727",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "给我看一下本周各团队的开发进度，有没有延期风险。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-think-1",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我先按团队完成度、blocker 和里程碑依赖来拆，不只是看谁慢，而是看谁会把风险传导给别人。"
+        }
+      },
+      {
+        "id": "mgmt-weekly-tool-1",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "先拿到多团队进度盘子，避免只盯后端延误却看不到整体联动。"
+        },
+        "tool_calls": [
+          {
+            "id": "mgmt-weekly-tool-1-tool",
+            "name": "Sprint 汇总",
+            "args": {
+              "week": "2026-W13",
+              "teams": [
+                "frontend",
+                "backend",
+                "qa"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mgmt-weekly-tool-1-result",
+        "type": "tool",
+        "name": "Sprint 汇总",
+        "tool_call_id": "mgmt-weekly-tool-1-tool",
+        "content": "前端 83% 正常推进，后端 57% 有延期风险，测试组当前并不是资源不足，而是在等待后端链路稳定。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-tool-2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "再判断哪些风险只是团队内部消化，哪些已经影响下周试点里程碑。"
+        },
+        "tool_calls": [
+          {
+            "id": "mgmt-weekly-tool-2-tool",
+            "name": "风险识别",
+            "args": {
+              "focus": [
+                "milestone",
+                "blockers",
+                "scope_change"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mgmt-weekly-tool-2-result",
+        "type": "tool",
+        "name": "风险识别",
+        "tool_call_id": "mgmt-weekly-tool-2-tool",
+        "content": "后端认证模块返工和报表接口需求膨胀已经影响到下周一试点里程碑，这是当前最核心的跨团队风险。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-tool-3",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "最后把建议压成老板可拍板的动作，而不是空泛地说要协调资源。"
+        },
+        "tool_calls": [
+          {
+            "id": "mgmt-weekly-tool-3-tool",
+            "name": "资源建议",
+            "args": {
+              "options": [
+                "freeze_scope",
+                "borrow_engineer",
+                "shift_testing_left"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mgmt-weekly-tool-3-result",
+        "type": "tool",
+        "name": "资源建议",
+        "tool_call_id": "mgmt-weekly-tool-3-tool",
+        "content": "建议本周冻结后端非核心报表需求，从平台组借 1 人支援认证链路，并让测试提前介入主链路冒烟，避免继续被动等待。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-summary-1",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "老板视角的一句话结论：本周不是全面失速，而是 `后端组的局部延期正在开始拖累整体节奏`。如果现在不收敛范围，风险会从单点问题扩散成整个试点延期。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-summary-2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我建议你只盯 3 件事：\n1. 后端组本周是否冻结非核心需求；\n2. 是否临时借人支援认证链路；\n3. 测试是否提前切入关键路径。\n这三件事决定了风险会收敛，还是继续向试点日期扩散。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-present-1",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我已经把周进度看板、延期风险说明和老板周会摘要都整理好了。"
+          }
+        ],
+        "additional_kwargs": {},
+        "tool_calls": [
+          {
+            "id": "mgmt-weekly-present-1-present",
+            "name": "present_files",
+            "args": {
+              "filepaths": [
+                "/mnt/user-data/outputs/mgmt/weekly-dashboard.html",
+                "/mnt/user-data/outputs/mgmt/backend-delay-brief.md",
+                "/mnt/user-data/outputs/mgmt/weekly-exec-summary.md"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mock-human-1774351462424",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "后端组为什么会延期，把影响里程碑的原因讲清楚。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-delay-think-1",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我先把延期拆成需求问题、执行问题和依赖问题，不然建议会很空。"
+        }
+      },
+      {
+        "id": "mgmt-delay-1",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我把后端组本周 blocker、需求变更和里程碑依赖关系串起来看。"
+        },
+        "tool_calls": [
+          {
+            "id": "mgmt-delay-1-tool",
+            "name": "风险识别",
+            "args": {
+              "team": "backend",
+              "sprint": "S24"
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mgmt-delay-1-result",
+        "type": "tool",
+        "name": "风险识别",
+        "tool_call_id": "mgmt-delay-1-tool",
+        "content": "后端组延期主要因为认证模块二次返工和报表接口需求膨胀：原计划 5 个接口，实际新增到 9 个，且测试环境数据不稳定，导致联调滞后 2 天。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-delay-2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "它影响的不是单个任务，而是下周一的外部试点里程碑。如果不处理，前端和测试会继续被动等待，延期风险会扩散到整个发布节奏。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-delay-3",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我把后端延期原因和影响范围整理成了一页风险说明。"
+          }
+        ],
+        "additional_kwargs": {},
+        "tool_calls": [
+          {
+            "id": "mgmt-delay-3-present",
+            "name": "present_files",
+            "args": {
+              "filepaths": [
+                "/mnt/user-data/outputs/mgmt/backend-delay-brief.md"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mock-human-1774351469193",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "拆一下哪些是需求问题，哪些是执行问题。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "fallback-1774351469194",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我已经收到你的追问：\"拆一下哪些是需求问题，哪些是执行问题。\"。当前这个 demo 版本更适合演示固定的高价值交互路径，我建议你继续追问这些方向：\n1. 后端组为什么会延期，把影响里程碑的原因讲清楚。\n2. 如果要把风险降下来，你建议怎么调配人力和优先级？\n3. 把这周最需要老板关注的 3 个点总结成周会摘要。\n\n如果你愿意，我也可以继续围绕「周进度与风险看板」补充说明。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mock-human-1774351477701",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "如果要把风险降下来，你建议怎么调配人力和优先级？"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-resource-1",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "如果要把风险降下来，我建议这样调：\n1. 后端组本周冻结非核心报表需求，只保认证和试点主链路；\n2. 从平台组借 1 名熟悉权限体系的工程师支援 3 天；\n3. 测试组提前介入冒烟清单，避免再等全部联调完才开始验证。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mock-human-1774351483384",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "再补一个如果不加人会怎样。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "fallback-1774351483384",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我已经收到你的追问：\"再补一个如果不加人会怎样。\"。当前这个 demo 版本更适合演示固定的高价值交互路径，我建议你继续追问这些方向：\n1. 后端组为什么会延期，把影响里程碑的原因讲清楚。\n2. 如果要把风险降下来，你建议怎么调配人力和优先级？\n3. 把这周最需要老板关注的 3 个点总结成周会摘要。\n\n如果你愿意，我也可以继续围绕「周进度与风险看板」补充说明。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mock-human-1774355802507",
+        "type": "human",
+        "content": [
+          {
+            "type": "text",
+            "text": "给我看一下本周各团队的开发进度，有没有延期风险。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-think-1__2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "我先按团队完成度、blocker 和里程碑依赖来拆，不只是看谁慢，而是看谁会把风险传导给别人。"
+        }
+      },
+      {
+        "id": "mgmt-weekly-tool-1__2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "先拿到多团队进度盘子，避免只盯后端延误却看不到整体联动。"
+        },
+        "tool_calls": [
+          {
+            "id": "mgmt-weekly-tool-1-tool",
+            "name": "Sprint 汇总",
+            "args": {
+              "week": "2026-W13",
+              "teams": [
+                "frontend",
+                "backend",
+                "qa"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mgmt-weekly-tool-1-result__2",
+        "type": "tool",
+        "name": "Sprint 汇总",
+        "tool_call_id": "mgmt-weekly-tool-1-tool",
+        "content": "前端 83% 正常推进，后端 57% 有延期风险，测试组当前并不是资源不足，而是在等待后端链路稳定。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-tool-2__2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "再判断哪些风险只是团队内部消化，哪些已经影响下周试点里程碑。"
+        },
+        "tool_calls": [
+          {
+            "id": "mgmt-weekly-tool-2-tool",
+            "name": "风险识别",
+            "args": {
+              "focus": [
+                "milestone",
+                "blockers",
+                "scope_change"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mgmt-weekly-tool-2-result__2",
+        "type": "tool",
+        "name": "风险识别",
+        "tool_call_id": "mgmt-weekly-tool-2-tool",
+        "content": "后端认证模块返工和报表接口需求膨胀已经影响到下周一试点里程碑，这是当前最核心的跨团队风险。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-tool-3__2",
+        "type": "ai",
+        "content": [],
+        "additional_kwargs": {
+          "reasoning_content": "最后把建议压成老板可拍板的动作，而不是空泛地说要协调资源。"
+        },
+        "tool_calls": [
+          {
+            "id": "mgmt-weekly-tool-3-tool",
+            "name": "资源建议",
+            "args": {
+              "options": [
+                "freeze_scope",
+                "borrow_engineer",
+                "shift_testing_left"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      },
+      {
+        "id": "mgmt-weekly-tool-3-result__2",
+        "type": "tool",
+        "name": "资源建议",
+        "tool_call_id": "mgmt-weekly-tool-3-tool",
+        "content": "建议本周冻结后端非核心报表需求，从平台组借 1 人支援认证链路，并让测试提前介入主链路冒烟，避免继续被动等待。",
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-summary-1__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "老板视角的一句话结论：本周不是全面失速，而是 `后端组的局部延期正在开始拖累整体节奏`。如果现在不收敛范围，风险会从单点问题扩散成整个试点延期。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-summary-2__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我建议你只盯 3 件事：\n1. 后端组本周是否冻结非核心需求；\n2. 是否临时借人支援认证链路；\n3. 测试是否提前切入关键路径。\n这三件事决定了风险会收敛，还是继续向试点日期扩散。"
+          }
+        ],
+        "additional_kwargs": {}
+      },
+      {
+        "id": "mgmt-weekly-present-1__2",
+        "type": "ai",
+        "content": [
+          {
+            "type": "text",
+            "text": "我已经把周进度看板、延期风险说明和老板周会摘要都整理好了。"
+          }
+        ],
+        "additional_kwargs": {},
+        "tool_calls": [
+          {
+            "id": "mgmt-weekly-present-1-present",
+            "name": "present_files",
+            "args": {
+              "filepaths": [
+                "/mnt/user-data/outputs/mgmt/weekly-dashboard.html",
+                "/mnt/user-data/outputs/mgmt/backend-delay-brief.md",
+                "/mnt/user-data/outputs/mgmt/weekly-exec-summary.md"
+              ]
+            },
+            "type": "tool_call"
+          }
+        ]
+      }
+    ],
+    "artifacts": [
+      "/mnt/user-data/outputs/mgmt/weekly-dashboard.html",
+      "/mnt/user-data/outputs/mgmt/backend-delay-brief.md",
+      "/mnt/user-data/outputs/mgmt/weekly-exec-summary.md"
+    ],
+    "todos": [
+      {
+        "content": "冻结后端非核心报表需求",
+        "status": "in_progress"
+      },
+      {
+        "content": "从平台组借 1 人支援认证链路",
+        "status": "pending"
+      },
+      {
+        "content": "测试提前介入主链路冒烟",
+        "status": "pending"
+      }
+    ],
+    "demo": {
+      "scenarioId": "mgmt",
+      "taskId": "mgmt-weekly-dashboard",
+      "suggestions": [
+        "后端组为什么会延期，把影响里程碑的原因讲清楚。",
+        "如果要把风险降下来，你建议怎么调配人力和优先级？",
+        "把这周最需要老板关注的 3 个点总结成周会摘要。",
+        "给我一版老板能快速决策的建议。"
+      ]
+    }
+  }
+}

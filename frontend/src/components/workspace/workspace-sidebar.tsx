@@ -15,6 +15,7 @@ import {
 import { authClient } from "@/server/better-auth/client";
 
 import { RecentChatList } from "./recent-chat-list";
+import { ScenarioPresets } from "./scenario-presets";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceNavChatList } from "./workspace-nav-chat-list";
 import { WorkspaceNavMenu } from "./workspace-nav-menu";
@@ -38,6 +39,7 @@ export function WorkspaceSidebar({
         </SidebarHeader>
         <SidebarContent>
           <WorkspaceNavChatList />
+          {isSidebarOpen && <ScenarioPresets />}
           {isSidebarOpen && <RecentChatList />}
         </SidebarContent>
         <SidebarFooter>

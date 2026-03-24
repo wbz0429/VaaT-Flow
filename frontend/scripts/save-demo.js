@@ -46,6 +46,9 @@ export async function main() {
   copyFolder("user-data/outputs", rootPath, backendRootPath);
   copyFolder("user-data/uploads", rootPath, backendRootPath);
   console.info(`Saved demo "${title}" to ${rootPath}`);
+  console.info(
+    "Remember to register the new thread in public/demo/index.json if you want it to appear in Demo Mode.",
+  );
 }
 
 function copyFolder(relPath, rootPath, backendRootPath) {

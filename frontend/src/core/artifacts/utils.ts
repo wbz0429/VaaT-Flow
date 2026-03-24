@@ -25,3 +25,11 @@ export function extractArtifactsFromThread(thread: AgentThread) {
 export function resolveArtifactURL(absolutePath: string, threadId: string) {
   return `${getBackendBaseURL()}/api/threads/${threadId}/artifacts${absolutePath}`;
 }
+
+export function resolveArtifactURLForMode(
+  absolutePath: string,
+  threadId: string,
+  isMock = false,
+) {
+  return urlOfArtifact({ filepath: absolutePath, threadId, isMock });
+}

@@ -3,6 +3,8 @@ import path from "path";
 
 import type { NextRequest } from "next/server";
 
+import { getThreadRoot } from "../../../../_lib/demo-seed-loader";
+
 export async function GET(
   request: NextRequest,
   {
@@ -17,10 +19,7 @@ export async function GET(
   const threadId = (await params).thread_id;
   let artifactPath = (await params).artifact_path?.join("/") ?? "";
   if (artifactPath.startsWith("mnt/")) {
-    artifactPath = path.resolve(
-      process.cwd(),
-      artifactPath.replace("mnt/", `public/demo/threads/${threadId}/`),
-    );
+    artifactPath = path.resolve(getThreadRoot(threadId), artifactPath.replace("mnt/", ""));
     if (fs.existsSync(artifactPath)) {
       if (request.nextUrl.searchParams.get("download") === "true") {
         // Attach the file to the response

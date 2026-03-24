@@ -121,7 +121,13 @@ export function groupMessages<T>(
   }
 
   return groups
-    .map(mapper)
+    .map((group, index) => {
+      const safeGroup = {
+        ...group,
+        id: group.id ? `${group.id}::${index}` : `group-${index}`,
+      } as MessageGroup;
+      return mapper(safeGroup);
+    })
     .filter((result) => result !== undefined && result !== null) as T[];
 }
 

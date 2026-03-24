@@ -1,5 +1,4 @@
-import fs from "fs";
-import path from "path";
+import { listDemoThreadIds, loadDemoThread } from "../../_lib/demo-seed-loader";
 
 type ThreadSearchRequest = {
   limit?: number;
@@ -36,35 +35,20 @@ export async function POST(request: Request) {
   const sortBy = body.sortBy ?? "updated_at";
   const sortOrder = body.sortOrder ?? "desc";
 
-  const threadsDir = fs.readdirSync(
-    path.resolve(process.cwd(), "public/demo/threads"),
-    {
-      withFileTypes: true,
-    },
-  );
-
-  const threadData = threadsDir
+  const threadData = listDemoThreadIds()
     .map<MockThreadSearchResult | null>((threadId) => {
-      if (threadId.isDirectory() && !threadId.name.startsWith(".")) {
-        const threadData = JSON.parse(
-          fs.readFileSync(
-            path.resolve(`public/demo/threads/${threadId.name}/thread.json`),
-            "utf8",
-          ),
-        ) as Record<string, unknown>;
+      const threadData = loadDemoThread(threadId) as unknown as Record<string, unknown>;
 
-        return {
-          ...threadData,
-          thread_id: threadId.name,
-          updated_at:
-            typeof threadData.updated_at === "string"
-              ? threadData.updated_at
-              : typeof threadData.created_at === "string"
-                ? threadData.created_at
-                : undefined,
-        };
-      }
-      return null;
+      return {
+        ...threadData,
+        thread_id: threadId,
+        updated_at:
+          typeof threadData.updated_at === "string"
+            ? threadData.updated_at
+            : typeof threadData.created_at === "string"
+              ? threadData.created_at
+              : undefined,
+      };
     })
     .filter((thread): thread is MockThreadSearchResult => thread !== null)
     .sort((a, b) => {

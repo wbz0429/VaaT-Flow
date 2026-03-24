@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "demo:save": "node scripts/save-demo.js",
+    "demo:validate": "node scripts/validate-demo-data.mjs",
     "build": "next build",
     "check": "next lint && tsc --noEmit",
     "dev": "next dev --turbo",

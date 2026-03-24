@@ -18,7 +18,7 @@ import {
 } from "@/components/ai-elements/reasoning";
 import { Task, TaskTrigger } from "@/components/ai-elements/task";
 import { Badge } from "@/components/ui/badge";
-import { resolveArtifactURL } from "@/core/artifacts/utils";
+import { resolveArtifactURLForMode } from "@/core/artifacts/utils";
 import { useI18n } from "@/core/i18n/hooks";
 import {
   extractContentFromMessage,
@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 
 import { CopyButton } from "../copy-button";
 
+import { useThread } from "./context";
 import { MarkdownContent } from "./markdown-content";
 
 export function MessageListItem({
@@ -83,7 +84,7 @@ export function MessageListItem({
 function MessageImage({
   src,
   alt,
-  threadId,
+  threadId: _threadId,
   maxWidth = "90%",
   ...props
 }: React.ImgHTMLAttributes<HTMLImageElement> & {
@@ -98,7 +99,7 @@ function MessageImage({
     return <img className={imgClassName} src={src} alt={alt} {...props} />;
   }
 
-  const url = src.startsWith("/mnt/") ? resolveArtifactURL(src, threadId) : src;
+  const url = src;
 
   return (
     <a href={url} target="_blank" rel="noopener noreferrer">
@@ -119,13 +120,23 @@ function MessageContent_({
   const rehypePlugins = useRehypeSplitWordsIntoSpans(isLoading);
   const isHuman = message.type === "human";
   const { thread_id } = useParams<{ thread_id: string }>();
+  const { isMock } = useThread();
   const components = useMemo(
     () => ({
       img: (props: ImgHTMLAttributes<HTMLImageElement>) => (
-        <MessageImage {...props} threadId={thread_id} maxWidth="90%" />
+        <MessageImage
+          {...props}
+          threadId={thread_id}
+          maxWidth="90%"
+          src={
+            typeof props.src === "string" && props.src.startsWith("/mnt/")
+              ? resolveArtifactURLForMode(props.src, thread_id, isMock)
+              : props.src
+          }
+        />
       ),
     }),
-    [thread_id],
+    [isMock, thread_id],
   );
 
   const rawContent = extractContentFromMessage(message);
@@ -307,6 +318,7 @@ function RichFileCard({
   threadId: string;
 }) {
   const { t } = useI18n();
+  const { isMock } = useThread();
   const isUploading = file.status === "uploading";
   const isImage = isImageFile(file.filename);
 
@@ -339,7 +351,7 @@ function RichFileCard({
 
   if (!file.path) return null;
 
-  const fileUrl = resolveArtifactURL(file.path, threadId);
+  const fileUrl = resolveArtifactURLForMode(file.path, threadId, isMock);
 
   if (isImage) {
     return (

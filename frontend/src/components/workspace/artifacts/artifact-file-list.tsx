@@ -34,6 +34,7 @@ export function ArtifactFileList({
   const { t } = useI18n();
   const { select: selectArtifact, setOpen } = useArtifacts();
   const [installingFile, setInstallingFile] = useState<string | null>(null);
+  const uniqueFiles = Array.from(new Set(files));
 
   const handleClick = useCallback(
     (filepath: string) => {
@@ -73,7 +74,7 @@ export function ArtifactFileList({
 
   return (
     <ul className={cn("flex w-full flex-col gap-4", className)}>
-      {files.map((file) => (
+      {uniqueFiles.map((file) => (
         <Card
           key={file}
           className="relative cursor-pointer p-3"

@@ -3,6 +3,7 @@
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { demoTasksByThreadId } from "@/core/demo/scenarios";
 import { uuid } from "@/core/utils/uuid";
 
 export function useThreadChat() {
@@ -24,6 +25,8 @@ export function useThreadChat() {
       setThreadId(uuid());
     }
   }, [pathname]);
-  const isMock = searchParams.get("mock") === "true";
+  const isMock =
+    searchParams.get("mock") === "true" ||
+    Boolean(threadIdFromPath && demoTasksByThreadId[threadIdFromPath]);
   return { threadId, isNewThread, setIsNewThread, isMock };
 }

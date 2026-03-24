@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { ArtifactTrigger } from "@/components/workspace/artifacts";
@@ -15,31 +16,49 @@ import { ThreadContext } from "@/components/workspace/messages/context";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
 import { Welcome } from "@/components/workspace/welcome";
+import {
+  demoTasks,
+  demoTasksByThreadId,
+} from "@/core/demo/scenarios";
+import type { DemoTaskDefinition } from "@/core/demo/types";
+import { useWorkspaceThreadStream } from "@/core/demo/workspace-hooks";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
 import { useLocalSettings } from "@/core/settings";
-import { useThreadStream } from "@/core/threads/hooks";
 import { textOfMessage } from "@/core/threads/utils";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
+const presetPrompts: Record<string, string> = Object.fromEntries(
+  demoTasks.map((task: DemoTaskDefinition) => [task.id, task.starterPrompt]),
+);
+
 export default function ChatPage() {
   const { t } = useI18n();
   const [settings, setSettings] = useLocalSettings();
+  const searchParams = useSearchParams();
 
   const { threadId, isNewThread, setIsNewThread, isMock } = useThreadChat();
   useSpecificChatMode();
 
+  const presetKey = searchParams.get("preset");
+  const presetPrompt = presetKey ? presetPrompts[presetKey] : undefined;
+  const activeDemoTask = isMock ? demoTasksByThreadId[threadId] : undefined;
+
   const { showNotification } = useNotification();
 
-  const [thread, sendMessage] = useThreadStream({
+  const [thread, sendMessage] = useWorkspaceThreadStream({
     threadId: isNewThread ? undefined : threadId,
     context: settings.context,
     isMock,
     onStart: () => {
       setIsNewThread(false);
       // ! Important: Never use next.js router for navigation in this case, otherwise it will cause the thread to re-mount and lose all states. Use native history API instead.
-      history.replaceState(null, "", `/workspace/chats/${threadId}`);
+      history.replaceState(
+        null,
+        "",
+        isMock ? `/workspace/chats/${threadId}?mock=true` : `/workspace/chats/${threadId}`,
+      );
     },
     onFinish: (state) => {
       if (document.hidden || !document.hasFocus()) {
@@ -68,6 +87,17 @@ export default function ChatPage() {
   const handleStop = useCallback(async () => {
     await thread.stop();
   }, [thread]);
+
+  // Auto-submit preset prompt on mount
+  const presetFiredRef = useRef(false);
+  useEffect(() => {
+    if (!presetPrompt || !isNewThread || presetFiredRef.current) return;
+    presetFiredRef.current = true;
+    // Delay one frame so the textarea has time to populate with initialValue
+    requestAnimationFrame(() => {
+      void sendMessage(threadId, { text: presetPrompt, files: [] });
+    });
+  }, [presetPrompt, isNewThread, sendMessage, threadId]);
 
   return (
     <ThreadContext.Provider value={{ thread, isMock }}>
@@ -128,6 +158,7 @@ export default function ChatPage() {
                     isNewThread && <Welcome mode={settings.context.mode} />
                   }
                   disabled={env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"}
+                  initialValue={presetPrompt ?? activeDemoTask?.starterPrompt}
                   onContextChange={(context) => setSettings("context", context)}
                   onSubmit={handleSubmit}
                   onStop={handleStop}
