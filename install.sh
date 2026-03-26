@@ -1,0 +1,275 @@
+#!/bin/sh
+# ──────────────────────────────────────────────────────────────────────────────
+# Allo (元枢) — One-Click Install Script
+#
+# Usage:
+#   sh install.sh              # Install and start Allo
+#   sh install.sh --uninstall  # Stop services and remove install directory
+#
+# Environment variables:
+#   ALLO_DIR   — Install directory (default: ~/allo)
+#   PORT       — Port to expose Allo on (default: 2026)
+#
+# Prerequisites: Docker and Docker Compose v2
+# ──────────────────────────────────────────────────────────────────────────────
+set -e
+
+# ── Colors ────────────────────────────────────────────────────────────────────
+if [ -t 1 ] && command -v tput >/dev/null 2>&1; then
+    RED=$(tput setaf 1)
+    GREEN=$(tput setaf 2)
+    YELLOW=$(tput setaf 3)
+    CYAN=$(tput setaf 6)
+    BOLD=$(tput bold)
+    RESET=$(tput sgr0)
+else
+    RED=""
+    GREEN=""
+    YELLOW=""
+    CYAN=""
+    BOLD=""
+    RESET=""
+fi
+
+# ── Logging helpers ───────────────────────────────────────────────────────────
+info()    { printf "%s[INFO]%s  %s\n" "$CYAN"   "$RESET" "$1"; }
+success() { printf "%s[OK]%s    %s\n" "$GREEN"  "$RESET" "$1"; }
+warn()    { printf "%s[WARN]%s  %s\n" "$YELLOW" "$RESET" "$1"; }
+error()   { printf "%s[ERROR]%s %s\n" "$RED"    "$RESET" "$1" >&2; }
+fatal()   { error "$1"; exit 1; }
+
+# ── Configuration ─────────────────────────────────────────────────────────────
+ALLO_DIR="${ALLO_DIR:-$HOME/allo}"
+PORT="${PORT:-2026}"
+
+# Resolve the directory where this script lives (i.e. the repo root).
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+DOCKER_SRC="$SCRIPT_DIR/docker"
+
+# ── Generate random hex string (POSIX-safe) ──────────────────────────────────
+# Tries /dev/urandom first, falls back to openssl.
+rand_hex() {
+    _len="$1"
+    _bytes=$(( (_len + 1) / 2 ))
+    if [ -r /dev/urandom ]; then
+        od -An -tx1 -N "$_bytes" /dev/urandom | tr -d ' \n' | head -c "$_len"
+    elif command -v openssl >/dev/null 2>&1; then
+        openssl rand -hex "$_bytes" | head -c "$_len"
+    else
+        fatal "Cannot generate random secrets: neither /dev/urandom nor openssl available"
+    fi
+}
+
+# ── Prerequisite checks ──────────────────────────────────────────────────────
+check_prerequisites() {
+    info "Checking prerequisites..."
+
+    if ! command -v docker >/dev/null 2>&1; then
+        fatal "Docker is not installed. Please install Docker first: https://docs.docker.com/get-docker/"
+    fi
+    success "Docker found: $(docker --version)"
+
+    # Check for Docker Compose v2 (docker compose, not docker-compose)
+    if docker compose version >/dev/null 2>&1; then
+        success "Docker Compose found: $(docker compose version --short)"
+    else
+        fatal "Docker Compose v2 is not available. Please upgrade Docker or install the compose plugin: https://docs.docker.com/compose/install/"
+    fi
+
+    # Verify Docker daemon is running
+    if ! docker info >/dev/null 2>&1; then
+        fatal "Docker daemon is not running. Please start Docker and try again."
+    fi
+    success "Docker daemon is running"
+}
+
+# ── Uninstall ─────────────────────────────────────────────────────────────────
+do_uninstall() {
+    info "Uninstalling Allo from $ALLO_DIR ..."
+
+    if [ ! -d "$ALLO_DIR" ]; then
+        warn "Install directory $ALLO_DIR does not exist. Nothing to uninstall."
+        exit 0
+    fi
+
+    if [ -f "$ALLO_DIR/docker-compose.yaml" ]; then
+        info "Stopping and removing containers, volumes, and networks..."
+        docker compose -f "$ALLO_DIR/docker-compose.yaml" down -v 2>/dev/null || true
+        success "Containers stopped and volumes removed"
+    fi
+
+    info "Removing install directory: $ALLO_DIR"
+    rm -rf "$ALLO_DIR"
+    success "Allo has been uninstalled."
+    exit 0
+}
+
+# ── Copy project files ────────────────────────────────────────────────────────
+copy_files() {
+    info "Setting up install directory: $ALLO_DIR"
+    mkdir -p "$ALLO_DIR/nginx"
+
+    # NOTE: In production, these files would be downloaded from a release URL, e.g.:
+    #   curl -fsSL https://releases.allo.dev/latest/docker-compose.yaml -o "$ALLO_DIR/docker-compose.yaml"
+    #   curl -fsSL https://releases.allo.dev/latest/nginx.conf -o "$ALLO_DIR/nginx/nginx.conf"
+    # For now, copy from the local repo's docker/ directory.
+
+    if [ ! -d "$DOCKER_SRC" ]; then
+        fatal "Docker source directory not found at $DOCKER_SRC. Are you running this from the repo root?"
+    fi
+
+    cp "$DOCKER_SRC/docker-compose.yaml" "$ALLO_DIR/docker-compose.yaml"
+    cp "$DOCKER_SRC/nginx/nginx.conf"    "$ALLO_DIR/nginx/nginx.conf"
+
+    success "Project files copied"
+}
+
+# ── Generate .env ─────────────────────────────────────────────────────────────
+generate_env() {
+    if [ -f "$ALLO_DIR/.env" ]; then
+        warn ".env already exists at $ALLO_DIR/.env — keeping existing secrets"
+        return
+    fi
+
+    info "Generating secrets and writing .env ..."
+
+    _pg_pass=$(rand_hex 32)
+    _auth_secret=$(rand_hex 64)
+
+    cat > "$ALLO_DIR/.env" <<EOF
+# Allo environment — auto-generated by install.sh
+# Regenerate by deleting this file and re-running install.sh
+
+# ── Secrets ───────────────────────────────────────────────────────────────
+POSTGRES_PASSWORD=$_pg_pass
+BETTER_AUTH_SECRET=$_auth_secret
+
+# ── Network ───────────────────────────────────────────────────────────────
+PORT=$PORT
+
+# ── Paths (defaults work for standard Docker install) ─────────────────────
+DEER_FLOW_HOME=$ALLO_DIR/data
+DEER_FLOW_CONFIG_PATH=$ALLO_DIR/config.yaml
+DEER_FLOW_EXTENSIONS_CONFIG_PATH=$ALLO_DIR/extensions_config.json
+DEER_FLOW_DOCKER_SOCKET=/var/run/docker.sock
+DEER_FLOW_REPO_ROOT=$ALLO_DIR
+EOF
+
+    chmod 600 "$ALLO_DIR/.env"
+    success "Environment file created at $ALLO_DIR/.env"
+}
+
+# ── Ensure data and config directories/files exist ────────────────────────────
+prepare_data() {
+    mkdir -p "$ALLO_DIR/data"
+    mkdir -p "$ALLO_DIR/skills"
+
+    # Create minimal config.yaml if missing
+    if [ ! -f "$ALLO_DIR/config.yaml" ]; then
+        cat > "$ALLO_DIR/config.yaml" <<'EOF'
+# Allo configuration — see docs for full options
+{}
+EOF
+    fi
+
+    # Create minimal extensions_config.json if missing
+    if [ ! -f "$ALLO_DIR/extensions_config.json" ]; then
+        printf '{"mcpServers": {}, "skills": []}\n' > "$ALLO_DIR/extensions_config.json"
+    fi
+}
+
+# ── Start services ────────────────────────────────────────────────────────────
+start_services() {
+    info "Starting Allo services..."
+    docker compose -f "$ALLO_DIR/docker-compose.yaml" --env-file "$ALLO_DIR/.env" up -d
+    success "Containers started"
+}
+
+# ── Wait for healthy ─────────────────────────────────────────────────────────
+wait_for_healthy() {
+    _url="http://localhost:${PORT}/health"
+    _timeout=60
+    _elapsed=0
+    _interval=3
+
+    info "Waiting for Allo to become healthy at $_url (timeout: ${_timeout}s)..."
+
+    while [ "$_elapsed" -lt "$_timeout" ]; do
+        # Use curl if available, otherwise wget
+        if command -v curl >/dev/null 2>&1; then
+            _status=$(curl -s -o /dev/null -w "%{http_code}" "$_url" 2>/dev/null) || _status="000"
+        elif command -v wget >/dev/null 2>&1; then
+            _status=$(wget --spider -S "$_url" 2>&1 | grep "HTTP/" | tail -1 | awk '{print $2}') || _status="000"
+        else
+            warn "Neither curl nor wget found — skipping health check"
+            return
+        fi
+
+        if [ "$_status" = "200" ]; then
+            success "Allo is healthy!"
+            return
+        fi
+
+        sleep "$_interval"
+        _elapsed=$(( _elapsed + _interval ))
+        printf "  ... waiting (%ds/%ds, last status: %s)\n" "$_elapsed" "$_timeout" "$_status"
+    done
+
+    warn "Health check timed out after ${_timeout}s. Services may still be starting."
+    warn "Check logs with: docker compose -f $ALLO_DIR/docker-compose.yaml logs"
+}
+
+# ── Print success banner ─────────────────────────────────────────────────────
+print_success() {
+    printf "\n"
+    printf "%s%s" "$GREEN$BOLD" "════════════════════════════════════════════════════════"
+    printf "%s\n" "$RESET"
+    printf "%s%s" "$GREEN$BOLD" "  Allo is running!"
+    printf "%s\n" "$RESET"
+    printf "%s%s" "$GREEN$BOLD" "════════════════════════════════════════════════════════"
+    printf "%s\n\n" "$RESET"
+    printf "  %sURL:%s        http://localhost:%s\n" "$BOLD" "$RESET" "$PORT"
+    printf "  %sInstall:%s   %s\n" "$BOLD" "$RESET" "$ALLO_DIR"
+    printf "  %sLogs:%s      docker compose -f %s/docker-compose.yaml logs -f\n" "$BOLD" "$RESET" "$ALLO_DIR"
+    printf "  %sStop:%s      docker compose -f %s/docker-compose.yaml down\n" "$BOLD" "$RESET" "$ALLO_DIR"
+    printf "  %sUninstall:%s sh %s --uninstall\n\n" "$BOLD" "$RESET" "$0"
+}
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+main() {
+    # Handle --uninstall flag
+    for _arg in "$@"; do
+        case "$_arg" in
+            --uninstall|-u)
+                check_prerequisites
+                do_uninstall
+                ;;
+            --help|-h)
+                printf "Usage: sh %s [--uninstall]\n" "$0"
+                printf "\nInstall and run Allo with Docker.\n"
+                printf "\nOptions:\n"
+                printf "  --uninstall, -u   Stop services and remove install directory\n"
+                printf "  --help, -h        Show this help message\n"
+                printf "\nEnvironment variables:\n"
+                printf "  ALLO_DIR          Install directory (default: ~/allo)\n"
+                printf "  PORT              Port to expose (default: 2026)\n"
+                exit 0
+                ;;
+            *)
+                fatal "Unknown option: $_arg (use --help for usage)"
+                ;;
+        esac
+    done
+
+    printf "\n%s%s Allo Installer %s\n\n" "$BOLD" "$CYAN" "$RESET"
+
+    check_prerequisites
+    copy_files
+    generate_env
+    prepare_data
+    start_services
+    wait_for_healthy
+    print_success
+}
+
+main "$@"
