@@ -26,6 +26,40 @@ type MessageGroup =
   | AssistantClarificationGroup
   | AssistantSubagentGroup;
 
+function summarizeMessageForDebug(message: Message) {
+  return {
+    id: message.id,
+    type: message.type,
+    name: "name" in message ? message.name : undefined,
+    tool_call_id: "tool_call_id" in message ? message.tool_call_id : undefined,
+    tool_calls:
+      message.type === "ai"
+        ? (message.tool_calls ?? []).map((toolCall) => ({
+            id: toolCall.id,
+            name: toolCall.name,
+          }))
+        : undefined,
+    hasContent: hasContent(message),
+  };
+}
+
+function logOrphanToolMessage(message: Message, messages: Message[], index: number) {
+  const start = Math.max(0, index - 5);
+  const end = Math.min(messages.length, index + 6);
+  const surroundingMessages = messages
+    .slice(start, end)
+    .map((item, offset) => ({
+      index: start + offset,
+      ...summarizeMessageForDebug(item),
+    }));
+
+  console.log("[orphan-tool-debug]", {
+    orphan: summarizeMessageForDebug(message),
+    orphanIndex: index,
+    surroundingMessages,
+  });
+}
+
 export function groupMessages<T>(
   messages: Message[],
   mapper: (group: MessageGroup) => T,
@@ -51,7 +85,7 @@ export function groupMessages<T>(
     return null;
   }
 
-  for (const message of messages) {
+  for (const [index, message] of messages.entries()) {
     if (message.name === "todo_reminder") {
       continue;
     }
@@ -76,10 +110,18 @@ export function groupMessages<T>(
         if (open) {
           open.messages.push(message);
         } else {
+          // Orphaned tool message (e.g. from streaming race or backend replay).
+          // Create a processing group so the UI stays consistent.
+          logOrphanToolMessage(message, messages, index);
           console.error(
             "Unexpected tool message outside a processing group",
             message,
           );
+          groups.push({
+            id: message.id,
+            type: "assistant:processing",
+            messages: [message],
+          });
         }
       }
       continue;

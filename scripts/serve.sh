@@ -144,13 +144,14 @@ mkdir -p logs
 if $DEV_MODE; then
     LANGGRAPH_EXTRA_FLAGS=""
     GATEWAY_EXTRA_FLAGS="--reload --reload-include='*.yaml' --reload-include='.env'"
+    LANGGRAPH_DEV_N_JOBS_PER_WORKER="${LANGGRAPH_DEV_N_JOBS_PER_WORKER:-4}"
 else
     LANGGRAPH_EXTRA_FLAGS="--no-reload"
     GATEWAY_EXTRA_FLAGS=""
 fi
 
 echo "Starting LangGraph server..."
-(load_project_env && cd backend && env NO_COLOR=1 uv run langgraph dev --no-browser --allow-blocking $LANGGRAPH_EXTRA_FLAGS > ../logs/langgraph.log 2>&1) &
+(load_project_env && cd backend && env NO_COLOR=1 uv run langgraph dev --no-browser --allow-blocking --n-jobs-per-worker "$LANGGRAPH_DEV_N_JOBS_PER_WORKER" $LANGGRAPH_EXTRA_FLAGS > ../logs/langgraph.log 2>&1) &
 ./scripts/wait-for-port.sh 2024 60 "LangGraph" || {
     echo "  See logs/langgraph.log for details"
     tail -20 logs/langgraph.log
