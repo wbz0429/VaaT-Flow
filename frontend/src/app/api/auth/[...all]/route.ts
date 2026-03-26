@@ -8,6 +8,8 @@ import {
   signUpWithLocalDevAuth,
 } from "@/server/better-auth/local-dev";
 
+const ALLO_MODE = process.env.ALLO_MODE ?? "development";
+
 function jsonResponse(body: unknown, status = 200): NextResponse {
   return NextResponse.json(body, { status });
 }
@@ -42,6 +44,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ all
   const route = params.all?.join("/") ?? "";
 
   if (route === "session") {
+    // TODO(Task 4.2): In appliance mode, use Better Auth with Postgres adapter
     const session = await getLocalDevSessionByToken(
       request.cookies.get(getLocalDevSessionCookieName())?.value,
     );
@@ -56,6 +59,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ al
   const route = params.all?.join("/") ?? "";
 
   if (route === "sign-up/email") {
+    // TODO(Task 4.2): In appliance mode, use Better Auth with Postgres adapter
+    if (ALLO_MODE === "appliance") {
+      return jsonResponse({ data: null, error: { message: "Appliance auth not yet configured — see Task 4.2" } }, 501);
+    }
     const body = (await request.json()) as { email?: string; password?: string; name?: string };
     const result = await signUpWithLocalDevAuth({
       email: body.email ?? "",
@@ -70,6 +77,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ al
   }
 
   if (route === "sign-in/email") {
+    // TODO(Task 4.2): In appliance mode, use Better Auth with Postgres adapter
+    if (ALLO_MODE === "appliance") {
+      return jsonResponse({ data: null, error: { message: "Appliance auth not yet configured — see Task 4.2" } }, 501);
+    }
     const body = (await request.json()) as { email?: string; password?: string };
     const result = await signInWithLocalDevAuth({
       email: body.email ?? "",

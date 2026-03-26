@@ -2,6 +2,10 @@
 
 Provides AuthContext extraction from session cookies or API key headers,
 with support for SKIP_AUTH=1 dev mode for backward compatibility.
+
+ALLO_MODE controls the auth resolution strategy:
+- "development" (default): enables dev fallbacks (JSON sessions, SKIP_AUTH).
+- "appliance": strict mode — only real DB sessions are accepted.
 """
 
 import json
@@ -21,11 +25,18 @@ from app.gateway.db.models import Organization
 
 logger = logging.getLogger(__name__)
 
+ALLO_MODE = os.getenv("ALLO_MODE", "development")
+
+
 def _get_runtime_env() -> str:
     return os.getenv("ENV", os.getenv("NODE_ENV", "development")).lower()
 
 
 def _get_runtime_skip_auth() -> bool:
+    if ALLO_MODE == "appliance":
+        if os.getenv("SKIP_AUTH", "0") == "1":
+            logger.critical("SKIP_AUTH=1 is set but ALLO_MODE=appliance — refusing to skip auth in appliance mode.")
+        return False
     env_name = _get_runtime_env()
     skip_auth_raw = os.getenv("SKIP_AUTH", "0") == "1"
     if skip_auth_raw and env_name not in ("development", "dev", "test"):
@@ -232,8 +243,10 @@ async def get_auth_context(request: Request, db: AsyncSession = Depends(get_db_s
     """FastAPI dependency that extracts and validates auth context.
 
     Checks (in order):
-    1. SKIP_AUTH env flag — returns a default dev context.
+    1. SKIP_AUTH env flag — returns a default dev context (development mode only).
     2. ``better-auth.session_token`` cookie — validated against the DB.
+       In development mode, falls back to dev session resolvers if DB lookup misses.
+       In appliance mode, only the DB session lookup is used.
     3. ``X-API-Key`` or ``Authorization: Bearer df-...`` header (future-proofed).
 
     Args:
@@ -256,9 +269,11 @@ async def get_auth_context(request: Request, db: AsyncSession = Depends(get_db_s
     if session_token:
         logger.info("Auth: request path=%s has session cookie token_prefix=%s", request.url.path, session_token[:12])
         ctx = await _resolve_session_from_db(session_token, db)
-        if ctx is None:
+        # In development mode, try dev fallbacks when DB lookup misses.
+        # In appliance mode, only the real DB session is accepted.
+        if ctx is None and ALLO_MODE != "appliance":
             ctx = await _resolve_dev_session_fallback(session_token, db)
-        if ctx is None:
+        if ctx is None and ALLO_MODE != "appliance":
             ctx = await _resolve_dev_json_session_fallback(session_token, db=db)
         if ctx is not None:
             logger.info("Auth: request path=%s resolved user_id=%s org_id=%s role=%s", request.url.path, ctx.user_id, ctx.org_id, ctx.role)
@@ -292,6 +307,7 @@ async def get_optional_auth_context(request: Request, db: AsyncSession = Depends
     """Same as get_auth_context but returns None instead of raising 401.
 
     Useful for endpoints that work with or without authentication (e.g., IM channels).
+    In appliance mode, dev fallbacks are skipped.
 
     Args:
         request: The incoming FastAPI request.
@@ -306,9 +322,9 @@ async def get_optional_auth_context(request: Request, db: AsyncSession = Depends
     session_token = request.cookies.get("better-auth.session_token")
     if session_token:
         ctx = await _resolve_session_from_db(session_token, db)
-        if ctx is None:
+        if ctx is None and ALLO_MODE != "appliance":
             ctx = await _resolve_dev_session_fallback(session_token, db)
-        if ctx is None:
+        if ctx is None and ALLO_MODE != "appliance":
             ctx = await _resolve_dev_json_session_fallback(session_token)
         return ctx
 

@@ -1,5 +1,6 @@
 """Tests for the auth module: AuthContext model, get_auth_context, get_optional_auth_context."""
 
+import json
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -386,3 +387,108 @@ def test_get_runtime_skip_auth_true_in_test() -> None:
 def test_get_runtime_skip_auth_true_in_dev_short() -> None:
     """_get_runtime_skip_auth returns True in dev environment."""
     assert _get_runtime_skip_auth() is True
+
+
+# ---------------------------------------------------------------------------
+# ALLO_MODE tests
+# ---------------------------------------------------------------------------
+
+
+@patch.dict(os.environ, {"ALLO_MODE": "appliance", "SKIP_AUTH": "1", "ENV": "development"}, clear=True)
+def test_skip_auth_disabled_in_appliance_mode() -> None:
+    """_get_runtime_skip_auth returns False in appliance mode even with SKIP_AUTH=1."""
+    with patch("app.gateway.auth.ALLO_MODE", "appliance"):
+        assert _get_runtime_skip_auth() is False
+
+
+@pytest.mark.asyncio
+async def test_get_auth_context_appliance_skips_dev_fallbacks() -> None:
+    """In appliance mode, dev fallbacks are not called when DB lookup misses."""
+    from fastapi import HTTPException
+
+    request = MagicMock()
+    request.cookies = {"better-auth.session_token": "tok-appliance"}
+    request.headers = {}
+    mock_db = AsyncMock()
+
+    with (
+        patch("app.gateway.auth.ALLO_MODE", "appliance"),
+        patch("app.gateway.auth._get_runtime_skip_auth", return_value=False),
+        patch("app.gateway.auth._resolve_session_from_db", new_callable=AsyncMock) as mock_db_resolve,
+        patch("app.gateway.auth._resolve_dev_session_fallback", new_callable=AsyncMock) as mock_dev_fallback,
+        patch("app.gateway.auth._resolve_dev_json_session_fallback", new_callable=AsyncMock) as mock_json_fallback,
+    ):
+        mock_db_resolve.return_value = None
+        with pytest.raises(HTTPException) as exc_info:
+            await get_auth_context(request, mock_db)
+
+    assert exc_info.value.status_code == 401
+    mock_dev_fallback.assert_not_awaited()
+    mock_json_fallback.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_auth_context_appliance_accepts_valid_db_session() -> None:
+    """In appliance mode, a valid DB session is accepted normally."""
+    request = MagicMock()
+    request.cookies = {"better-auth.session_token": "tok-valid-appliance"}
+    request.headers = {}
+    mock_db = AsyncMock()
+
+    with (
+        patch("app.gateway.auth.ALLO_MODE", "appliance"),
+        patch("app.gateway.auth._get_runtime_skip_auth", return_value=False),
+        patch("app.gateway.auth._resolve_session_from_db", new_callable=AsyncMock) as mock_db_resolve,
+    ):
+        mock_db_resolve.return_value = AuthContext(user_id="u-app", org_id="o-app", role="member")
+        ctx = await get_auth_context(request, mock_db)
+
+    assert ctx.user_id == "u-app"
+    assert ctx.org_id == "o-app"
+
+
+@pytest.mark.asyncio
+async def test_get_optional_auth_context_appliance_skips_dev_fallbacks() -> None:
+    """In appliance mode, get_optional_auth_context skips dev fallbacks and returns None."""
+    request = MagicMock()
+    request.cookies = {"better-auth.session_token": "tok-opt-appliance"}
+    mock_db = AsyncMock()
+
+    with (
+        patch("app.gateway.auth.ALLO_MODE", "appliance"),
+        patch("app.gateway.auth._get_runtime_skip_auth", return_value=False),
+        patch("app.gateway.auth._resolve_session_from_db", new_callable=AsyncMock) as mock_db_resolve,
+        patch("app.gateway.auth._resolve_dev_session_fallback", new_callable=AsyncMock) as mock_dev_fallback,
+        patch("app.gateway.auth._resolve_dev_json_session_fallback", new_callable=AsyncMock) as mock_json_fallback,
+    ):
+        mock_db_resolve.return_value = None
+        ctx = await get_optional_auth_context(request, mock_db)
+
+    assert ctx is None
+    mock_dev_fallback.assert_not_awaited()
+    mock_json_fallback.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_auth_context_development_uses_dev_fallbacks() -> None:
+    """In development mode (default), dev fallbacks are called when DB lookup misses."""
+    request = MagicMock()
+    request.cookies = {"better-auth.session_token": "tok-dev-fallback"}
+    request.headers = {}
+    mock_db = AsyncMock()
+
+    with (
+        patch("app.gateway.auth.ALLO_MODE", "development"),
+        patch("app.gateway.auth._get_runtime_skip_auth", return_value=False),
+        patch("app.gateway.auth._resolve_session_from_db", new_callable=AsyncMock) as mock_db_resolve,
+        patch("app.gateway.auth._resolve_dev_session_fallback", new_callable=AsyncMock) as mock_dev_fallback,
+        patch("app.gateway.auth._resolve_dev_json_session_fallback", new_callable=AsyncMock) as mock_json_fallback,
+    ):
+        mock_db_resolve.return_value = None
+        mock_dev_fallback.return_value = None
+        mock_json_fallback.return_value = AuthContext(user_id="u-json", org_id="dev-org-000", role="admin")
+        ctx = await get_auth_context(request, mock_db)
+
+    assert ctx.user_id == "u-json"
+    mock_dev_fallback.assert_awaited_once()
+    mock_json_fallback.assert_awaited_once()
