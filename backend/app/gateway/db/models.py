@@ -413,3 +413,35 @@ class OrgInstalledSkill(Base):
 
     def __repr__(self) -> str:
         return f"<OrgInstalledSkill(id={self.id!r}, org_id={self.org_id!r}, skill_id={self.skill_id!r})>"
+
+
+class ApplianceSettings(Base):
+    """Global appliance-level settings (key-value store).
+
+    Used to persist setup wizard state, model provider configurations,
+    and other appliance-wide settings that replace manual config file editing.
+
+    Keys include:
+        setup_completed: "true"/"false" — whether initial setup wizard has been completed.
+        model_providers: JSON string — configured model providers with API keys.
+        default_model: string — name of the default model.
+        sandbox_mode: string — "local" or "aio".
+        base_url: string — public-facing URL of the appliance.
+    """
+
+    __tablename__ = "appliance_settings"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, insert_default=lambda: str(uuid.uuid4()))
+    key: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False, insert_default="{}")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    def __init__(self, **kwargs: object) -> None:
+        if "id" not in kwargs:
+            kwargs["id"] = str(uuid.uuid4())
+        if "value" not in kwargs:
+            kwargs["value"] = "{}"
+        super().__init__(**kwargs)
+
+    def __repr__(self) -> str:
+        return f"<ApplianceSettings(id={self.id!r}, key={self.key!r})>"

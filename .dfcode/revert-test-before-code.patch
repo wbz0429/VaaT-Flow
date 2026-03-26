@@ -1,0 +1,506 @@
+diff --git a/backend/packages/harness/deerflow/tools/builtins/task_tool.py b/backend/packages/harness/deerflow/tools/builtins/task_tool.py
+index 902e1d7..d9478f6 100644
+--- a/backend/packages/harness/deerflow/tools/builtins/task_tool.py
++++ b/backend/packages/harness/deerflow/tools/builtins/task_tool.py
+@@ -1,7 +1,7 @@
+ """Task tool for delegating work to subagents."""
+ 
++import asyncio
+ import logging
+-import time
+ import uuid
+ from dataclasses import replace
+ from typing import Annotated, Literal
+@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
+ 
+ 
+ @tool("task", parse_docstring=True)
+-def task_tool(
++async def task_tool(
+     runtime: ToolRuntime[ContextT, ThreadState],
+     description: str,
+     prompt: str,
+@@ -144,11 +144,12 @@ def task_tool(
+             last_status = result.status
+ 
+         # Check for new AI messages and send task_running events
+-        current_message_count = len(result.ai_messages)
++        ai_messages = result.ai_messages or []
++        current_message_count = len(ai_messages)
+         if current_message_count > last_message_count:
+             # Send task_running event for each new message
+             for i in range(last_message_count, current_message_count):
+-                message = result.ai_messages[i]
++                message = ai_messages[i]
+                 writer(
+                     {
+                         "type": "task_running",
+@@ -179,7 +180,7 @@ def task_tool(
+             return f"Task timed out. Error: {result.error}"
+ 
+         # Still running, wait before next poll
+-        time.sleep(5)  # Poll every 5 seconds
++        await asyncio.sleep(5)  # Poll every 5 seconds without blocking the worker
+         poll_count += 1
+ 
+         # Polling timeout as a safety net (in case thread pool timeout doesn't work)
+diff --git a/backend/tests/test_task_tool_core_logic.py b/backend/tests/test_task_tool_core_logic.py
+index 19d1b82..41b6775 100644
+--- a/backend/tests/test_task_tool_core_logic.py
++++ b/backend/tests/test_task_tool_core_logic.py
+@@ -1,10 +1,14 @@
+ """Core behavior tests for task tool orchestration."""
+ 
++import asyncio
+ import importlib
++import inspect
+ from enum import Enum
+ from types import SimpleNamespace
+ from unittest.mock import MagicMock
+ 
++import pytest
++
+ from deerflow.subagents.config import SubagentConfig
+ 
+ # Use module import so tests can patch the exact symbols referenced inside task_tool().
+@@ -61,10 +65,15 @@ def _make_result(
+     )
+ 
+ 
+-def test_task_tool_returns_error_for_unknown_subagent(monkeypatch):
++async def _call_task_tool(**kwargs):
++    return await task_tool_module.task_tool.coroutine(**kwargs)
++
++
++@pytest.mark.asyncio
++async def test_task_tool_returns_error_for_unknown_subagent(monkeypatch):
+     monkeypatch.setattr(task_tool_module, "get_subagent_config", lambda _: None)
+ 
+-    result = task_tool_module.task_tool.func(
++    result = await _call_task_tool(
+         runtime=None,
+         description="执行任务",
+         prompt="do work",
+@@ -75,7 +84,115 @@ def test_task_tool_returns_error_for_unknown_subagent(monkeypatch):
+     assert result.startswith("Error: Unknown subagent type")
+ 
+ 
+-def test_task_tool_emits_running_and_completed_events(monkeypatch):
++def test_task_tool_is_async_function():
++    assert inspect.iscoroutinefunction(task_tool_module.task_tool.coroutine)
++
++
++@pytest.mark.asyncio
++async def test_task_tool_awaits_async_sleep_during_polling(monkeypatch):
++    config = _make_subagent_config()
++    runtime = _make_runtime()
++    events = []
++    sleep_calls = []
++
++    monkeypatch.setattr(task_tool_module, "SubagentStatus", FakeSubagentStatus)
++    monkeypatch.setattr(
++        task_tool_module,
++        "SubagentExecutor",
++        type("DummyExecutor", (), {"__init__": lambda self, **kwargs: None, "execute_async": lambda self, prompt, task_id=None: task_id}),
++    )
++    monkeypatch.setattr(task_tool_module, "get_subagent_config", lambda _: config)
++    monkeypatch.setattr(task_tool_module, "get_skills_prompt_section", lambda: "")
++
++    responses = iter(
++        [
++            _make_result(FakeSubagentStatus.RUNNING, ai_messages=[]),
++            _make_result(FakeSubagentStatus.COMPLETED, result="done"),
++        ]
++    )
++    monkeypatch.setattr(task_tool_module, "get_background_task_result", lambda _: next(responses))
++    monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
++
++    async def fake_sleep(seconds):
++        sleep_calls.append(seconds)
++
++    monkeypatch.setattr(task_tool_module.asyncio, "sleep", fake_sleep)
++    monkeypatch.setattr("deerflow.tools.get_available_tools", lambda **kwargs: [])
++
++    output = await _call_task_tool(
++        runtime=runtime,
++        description="执行任务",
++        prompt="finish later",
++        subagent_type="general-purpose",
++        tool_call_id="tc-async-sleep",
++    )
++
++    assert output == "Task Succeeded. Result: done"
++    assert sleep_calls == [5]
++    assert [event["type"] for event in events] == ["task_started", "task_completed"]
++
++
++@pytest.mark.asyncio
++async def test_task_tool_polling_does_not_block_concurrent_coroutine(monkeypatch):
++    config = _make_subagent_config()
++    runtime = _make_runtime()
++    events = []
++    sleep_gate = asyncio.Event()
++    other_task_progress = []
++    poll_count = 0
++    real_asyncio_sleep = asyncio.sleep
++
++    monkeypatch.setattr(task_tool_module, "SubagentStatus", FakeSubagentStatus)
++    monkeypatch.setattr(
++        task_tool_module,
++        "SubagentExecutor",
++        type("DummyExecutor", (), {"__init__": lambda self, **kwargs: None, "execute_async": lambda self, prompt, task_id=None: task_id}),
++    )
++    monkeypatch.setattr(task_tool_module, "get_subagent_config", lambda _: config)
++    monkeypatch.setattr(task_tool_module, "get_skills_prompt_section", lambda: "")
++
++    def fake_get_background_task_result(_task_id):
++        nonlocal poll_count
++        poll_count += 1
++        if poll_count == 1:
++            return _make_result(FakeSubagentStatus.RUNNING, ai_messages=[])
++        return _make_result(FakeSubagentStatus.COMPLETED, result="done")
++
++    monkeypatch.setattr(task_tool_module, "get_background_task_result", fake_get_background_task_result)
++    monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
++
++    async def fake_sleep(_seconds):
++        await sleep_gate.wait()
++
++    monkeypatch.setattr(task_tool_module.asyncio, "sleep", fake_sleep)
++    monkeypatch.setattr("deerflow.tools.get_available_tools", lambda **kwargs: [])
++
++    async def run_task_tool():
++        return await _call_task_tool(
++            runtime=runtime,
++            description="执行任务",
++            prompt="finish later",
++            subagent_type="general-purpose",
++            tool_call_id="tc-concurrent",
++        )
++
++    async def other_coroutine():
++        other_task_progress.append("started")
++        await real_asyncio_sleep(0)
++        other_task_progress.append("finished")
++        sleep_gate.set()
++        return "other-done"
++
++    task_result, other_result = await asyncio.gather(run_task_tool(), other_coroutine())
++
++    assert task_result == "Task Succeeded. Result: done"
++    assert other_result == "other-done"
++    assert other_task_progress == ["started", "finished"]
++    assert [event["type"] for event in events] == ["task_started", "task_completed"]
++
++
++@pytest.mark.asyncio
++async def test_task_tool_emits_running_and_completed_events(monkeypatch):
+     config = _make_subagent_config()
+     runtime = _make_runtime()
+     events = []
+@@ -109,11 +226,15 @@ def test_task_tool_emits_running_and_completed_events(monkeypatch):
+     monkeypatch.setattr(task_tool_module, "get_skills_prompt_section", lambda: "Skills Appendix")
+     monkeypatch.setattr(task_tool_module, "get_background_task_result", lambda _: next(responses))
+     monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
+-    monkeypatch.setattr(task_tool_module.time, "sleep", lambda _: None)
++
++    async def fake_sleep(_):
++        return None
++
++    monkeypatch.setattr(task_tool_module.asyncio, "sleep", fake_sleep)
+     # task_tool lazily imports from deerflow.tools at call time, so patch that module-level function.
+     monkeypatch.setattr("deerflow.tools.get_available_tools", get_available_tools)
+ 
+-    output = task_tool_module.task_tool.func(
++    output = await _call_task_tool(
+         runtime=runtime,
+         description="运行子任务",
+         prompt="collect diagnostics",
+@@ -137,7 +258,8 @@ def test_task_tool_emits_running_and_completed_events(monkeypatch):
+     assert events[-1]["result"] == "all done"
+ 
+ 
+-def test_task_tool_returns_failed_message(monkeypatch):
++@pytest.mark.asyncio
++async def test_task_tool_returns_failed_message(monkeypatch):
+     config = _make_subagent_config()
+     events = []
+ 
+@@ -155,10 +277,14 @@ def test_task_tool_returns_failed_message(monkeypatch):
+         lambda _: _make_result(FakeSubagentStatus.FAILED, error="subagent crashed"),
+     )
+     monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
+-    monkeypatch.setattr(task_tool_module.time, "sleep", lambda _: None)
++
++    async def fake_sleep(_):
++        return None
++
++    monkeypatch.setattr(task_tool_module.asyncio, "sleep", fake_sleep)
+     monkeypatch.setattr("deerflow.tools.get_available_tools", lambda **kwargs: [])
+ 
+-    output = task_tool_module.task_tool.func(
++    output = await _call_task_tool(
+         runtime=_make_runtime(),
+         description="执行任务",
+         prompt="do fail",
+@@ -171,7 +297,8 @@ def test_task_tool_returns_failed_message(monkeypatch):
+     assert events[-1]["error"] == "subagent crashed"
+ 
+ 
+-def test_task_tool_returns_timed_out_message(monkeypatch):
++@pytest.mark.asyncio
++async def test_task_tool_returns_timed_out_message(monkeypatch):
+     config = _make_subagent_config()
+     events = []
+ 
+@@ -189,10 +316,14 @@ def test_task_tool_returns_timed_out_message(monkeypatch):
+         lambda _: _make_result(FakeSubagentStatus.TIMED_OUT, error="timeout"),
+     )
+     monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
+-    monkeypatch.setattr(task_tool_module.time, "sleep", lambda _: None)
++
++    async def fake_sleep(_):
++        return None
++
++    monkeypatch.setattr(task_tool_module.asyncio, "sleep", fake_sleep)
+     monkeypatch.setattr("deerflow.tools.get_available_tools", lambda **kwargs: [])
+ 
+-    output = task_tool_module.task_tool.func(
++    output = await _call_task_tool(
+         runtime=_make_runtime(),
+         description="执行任务",
+         prompt="do timeout",
+@@ -205,7 +336,8 @@ def test_task_tool_returns_timed_out_message(monkeypatch):
+     assert events[-1]["error"] == "timeout"
+ 
+ 
+-def test_task_tool_polling_safety_timeout(monkeypatch):
++@pytest.mark.asyncio
++async def test_task_tool_polling_safety_timeout(monkeypatch):
+     config = _make_subagent_config()
+     # Keep max_poll_count small for test speed: (1 + 60) // 5 = 12
+     config.timeout_seconds = 1
+@@ -225,10 +357,14 @@ def test_task_tool_polling_safety_timeout(monkeypatch):
+         lambda _: _make_result(FakeSubagentStatus.RUNNING, ai_messages=[]),
+     )
+     monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
+-    monkeypatch.setattr(task_tool_module.time, "sleep", lambda _: None)
++
++    async def fake_sleep(_):
++        return None
++
++    monkeypatch.setattr(task_tool_module.asyncio, "sleep", fake_sleep)
+     monkeypatch.setattr("deerflow.tools.get_available_tools", lambda **kwargs: [])
+ 
+-    output = task_tool_module.task_tool.func(
++    output = await _call_task_tool(
+         runtime=_make_runtime(),
+         description="执行任务",
+         prompt="never finish",
+@@ -241,7 +377,8 @@ def test_task_tool_polling_safety_timeout(monkeypatch):
+     assert events[-1]["type"] == "task_timed_out"
+ 
+ 
+-def test_cleanup_called_on_completed(monkeypatch):
++@pytest.mark.asyncio
++async def test_cleanup_called_on_completed(monkeypatch):
+     """Verify cleanup_background_task is called when task completes."""
+     config = _make_subagent_config()
+     events = []
+@@ -261,7 +398,11 @@ def test_cleanup_called_on_completed(monkeypatch):
+         lambda _: _make_result(FakeSubagentStatus.COMPLETED, result="done"),
+     )
+     monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
+-    monkeypatch.setattr(task_tool_module.time, "sleep", lambda _: None)
++
++    async def fake_sleep(_):
++        return None
++
++    monkeypatch.setattr(task_tool_module.asyncio, "sleep", fake_sleep)
+     monkeypatch.setattr("deerflow.tools.get_available_tools", lambda **kwargs: [])
+     monkeypatch.setattr(
+         task_tool_module,
+@@ -269,7 +410,7 @@ def test_cleanup_called_on_completed(monkeypatch):
+         lambda task_id: cleanup_calls.append(task_id),
+     )
+ 
+-    output = task_tool_module.task_tool.func(
++    output = await _call_task_tool(
+         runtime=_make_runtime(),
+         description="执行任务",
+         prompt="complete task",
+@@ -281,7 +422,8 @@ def test_cleanup_called_on_completed(monkeypatch):
+     assert cleanup_calls == ["tc-cleanup-completed"]
+ 
+ 
+-def test_cleanup_called_on_failed(monkeypatch):
++@pytest.mark.asyncio
++async def test_cleanup_called_on_failed(monkeypatch):
+     """Verify cleanup_background_task is called when task fails."""
+     config = _make_subagent_config()
+     events = []
+@@ -301,7 +443,11 @@ def test_cleanup_called_on_failed(monkeypatch):
+         lambda _: _make_result(FakeSubagentStatus.FAILED, error="error"),
+     )
+     monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
+-    monkeypatch.setattr(task_tool_module.time, "sleep", lambda _: None)
++
++    async def fake_sleep(_):
++        return None
++
++    monkeypatch.setattr(task_tool_module.asyncio, "sleep", fake_sleep)
+     monkeypatch.setattr("deerflow.tools.get_available_tools", lambda **kwargs: [])
+     monkeypatch.setattr(
+         task_tool_module,
+@@ -309,7 +455,7 @@ def test_cleanup_called_on_failed(monkeypatch):
+         lambda task_id: cleanup_calls.append(task_id),
+     )
+ 
+-    output = task_tool_module.task_tool.func(
++    output = await _call_task_tool(
+         runtime=_make_runtime(),
+         description="执行任务",
+         prompt="fail task",
+@@ -321,7 +467,8 @@ def test_cleanup_called_on_failed(monkeypatch):
+     assert cleanup_calls == ["tc-cleanup-failed"]
+ 
+ 
+-def test_cleanup_called_on_timed_out(monkeypatch):
++@pytest.mark.asyncio
++async def test_cleanup_called_on_timed_out(monkeypatch):
+     """Verify cleanup_background_task is called when task times out."""
+     config = _make_subagent_config()
+     events = []
+@@ -341,7 +488,11 @@ def test_cleanup_called_on_timed_out(monkeypatch):
+         lambda _: _make_result(FakeSubagentStatus.TIMED_OUT, error="timeout"),
+     )
+     monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
+-    monkeypatch.setattr(task_tool_module.time, "sleep", lambda _: None)
++
++    async def fake_sleep(_):
++        return None
++
++    monkeypatch.setattr(task_tool_module.asyncio, "sleep", fake_sleep)
+     monkeypatch.setattr("deerflow.tools.get_available_tools", lambda **kwargs: [])
+     monkeypatch.setattr(
+         task_tool_module,
+@@ -349,7 +500,7 @@ def test_cleanup_called_on_timed_out(monkeypatch):
+         lambda task_id: cleanup_calls.append(task_id),
+     )
+ 
+-    output = task_tool_module.task_tool.func(
++    output = await _call_task_tool(
+         runtime=_make_runtime(),
+         description="执行任务",
+         prompt="timeout task",
+@@ -361,7 +512,8 @@ def test_cleanup_called_on_timed_out(monkeypatch):
+     assert cleanup_calls == ["tc-cleanup-timedout"]
+ 
+ 
+-def test_cleanup_not_called_on_polling_safety_timeout(monkeypatch):
++@pytest.mark.asyncio
++async def test_cleanup_not_called_on_polling_safety_timeout(monkeypatch):
+     """Verify cleanup_background_task is NOT called on polling safety timeout.
+ 
+     This prevents race conditions where the background task is still running
+@@ -388,7 +540,11 @@ def test_cleanup_not_called_on_polling_safety_timeout(monkeypatch):
+         lambda _: _make_result(FakeSubagentStatus.RUNNING, ai_messages=[]),
+     )
+     monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
+-    monkeypatch.setattr(task_tool_module.time, "sleep", lambda _: None)
++
++    async def fake_sleep(_):
++        return None
++
++    monkeypatch.setattr(task_tool_module.asyncio, "sleep", fake_sleep)
+     monkeypatch.setattr("deerflow.tools.get_available_tools", lambda **kwargs: [])
+     monkeypatch.setattr(
+         task_tool_module,
+@@ -396,7 +552,7 @@ def test_cleanup_not_called_on_polling_safety_timeout(monkeypatch):
+         lambda task_id: cleanup_calls.append(task_id),
+     )
+ 
+-    output = task_tool_module.task_tool.func(
++    output = await _call_task_tool(
+         runtime=_make_runtime(),
+         description="执行任务",
+         prompt="never finish",
+diff --git a/frontend/src/components/workspace/messages/subtask-card.tsx b/frontend/src/components/workspace/messages/subtask-card.tsx
+index b2aa74b..9f7e416 100644
+--- a/frontend/src/components/workspace/messages/subtask-card.tsx
++++ b/frontend/src/components/workspace/messages/subtask-card.tsx
+@@ -41,8 +41,11 @@ export function SubtaskCard({
+   const { t } = useI18n();
+   const [collapsed, setCollapsed] = useState(true);
+   const rehypePlugins = useRehypeSplitWordsIntoSpans(isLoading);
+-  const task = useSubtask(taskId)!;
++  const task = useSubtask(taskId);
+   const icon = useMemo(() => {
++    if (!task) {
++      return null;
++    }
+     if (task.status === "completed") {
+       return <CheckCircleIcon className="size-3" />;
+     } else if (task.status === "failed") {
+@@ -50,7 +53,12 @@ export function SubtaskCard({
+     } else if (task.status === "in_progress") {
+       return <Loader2Icon className="size-3 animate-spin" />;
+     }
+-  }, [task.status]);
++  }, [task]);
++
++  if (!task) {
++    return null;
++  }
++
+   return (
+     <ChainOfThought
+       className={cn("relative w-full gap-2 rounded-lg border py-0", className)}
+diff --git a/frontend/src/core/tasks/context.tsx b/frontend/src/core/tasks/context.tsx
+index ea85772..70dc8e9 100644
+--- a/frontend/src/core/tasks/context.tsx
++++ b/frontend/src/core/tasks/context.tsx
+@@ -4,7 +4,7 @@ import type { Subtask } from "./types";
+ 
+ export interface SubtaskContextValue {
+   tasks: Record<string, Subtask>;
+-  setTasks: (tasks: Record<string, Subtask>) => void;
++  setTasks: React.Dispatch<React.SetStateAction<Record<string, Subtask>>>;
+ }
+ 
+ export const SubtaskContext = createContext<SubtaskContextValue>({
+@@ -39,15 +39,15 @@ export function useSubtask(id: string) {
+ }
+ 
+ export function useUpdateSubtask() {
+-  const { tasks, setTasks } = useSubtaskContext();
++  const { setTasks } = useSubtaskContext();
+   const updateSubtask = useCallback(
+     (task: Partial<Subtask> & { id: string }) => {
+-      tasks[task.id] = { ...tasks[task.id], ...task } as Subtask;
+-      if (task.latestMessage) {
+-        setTasks({ ...tasks });
+-      }
++      setTasks((currentTasks) => ({
++        ...currentTasks,
++        [task.id]: { ...currentTasks[task.id], ...task } as Subtask,
++      }));
+     },
+-    [tasks, setTasks],
++    [setTasks],
+   );
+   return updateSubtask;
+ }
+diff --git a/scripts/serve.sh b/scripts/serve.sh
+index 3e6a7c7..408a850 100755
+--- a/scripts/serve.sh
++++ b/scripts/serve.sh
+@@ -144,7 +144,7 @@ mkdir -p logs
+ if $DEV_MODE; then
+     LANGGRAPH_EXTRA_FLAGS=""
+     GATEWAY_EXTRA_FLAGS="--reload --reload-include='*.yaml' --reload-include='.env'"
+-    LANGGRAPH_DEV_N_JOBS_PER_WORKER="${LANGGRAPH_DEV_N_JOBS_PER_WORKER:-4}"
++    LANGGRAPH_DEV_N_JOBS_PER_WORKER="${LANGGRAPH_DEV_N_JOBS_PER_WORKER:-1}"
+ else
+     LANGGRAPH_EXTRA_FLAGS="--no-reload"
+     GATEWAY_EXTRA_FLAGS=""

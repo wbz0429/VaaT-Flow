@@ -5,6 +5,12 @@
       "userId": "dev_user_74dd1f21d419c8b3bcaa47ff",
       "createdAt": "2026-03-25T15:34:36.250Z",
       "expiresAt": "2026-04-01T15:34:36.250Z"
+    },
+    {
+      "token": "dev_session_03e9a54fb447dc981f18b0ec",
+      "userId": "dev_user_cc361b45358b039f6521e472",
+      "createdAt": "2026-03-26T19:31:00.176Z",
+      "expiresAt": "2026-04-02T19:31:00.176Z"
     }
   ]
 }

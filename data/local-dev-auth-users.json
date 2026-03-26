@@ -6,6 +6,13 @@
       "name": "KAI",
       "passwordHash": "fc36ad7392457d3f100ffd6175389786:91e7e404725d8383c3ac5fbd4098251da4990d1373f05e43bb67cb1f26b7fc4ce3aec0aeefe4e1e2c6d3194449218b77ab5ee52002d4302ed44a90959a5c2c45",
       "createdAt": "2026-03-25T15:34:36.248Z"
+    },
+    {
+      "id": "dev_user_cc361b45358b039f6521e472",
+      "email": "1@email",
+      "name": "wangbinzhu",
+      "passwordHash": "d4e74c78a586449b72dc5c19679857e3:bdce349e22373a0047113fe3b0a2e37192628a89896da1fdf25cd33cd25bcaa48e09f491964acd5a55b7c58c64c78b320c93abeb1ab01b985543bd04f1ec738c",
+      "createdAt": "2026-03-26T18:57:45.825Z"
     }
   ]
 }
