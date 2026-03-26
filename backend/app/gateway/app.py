@@ -19,6 +19,7 @@ from app.gateway.routers import (
     mcp,
     memory,
     models,
+    setup,
     skills,
     suggestions,
     uploads,
@@ -163,6 +164,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "MCP tool and skill marketplace",
             },
             {
+                "name": "setup",
+                "description": "Appliance first-run setup wizard API",
+            },
+            {
                 "name": "health",
                 "description": "Health check and system status endpoints",
             },
@@ -224,6 +229,9 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
 
     # Marketplace API is mounted at /api/marketplace
     app.include_router(marketplace.router)
+
+    # Setup API is mounted at /api/setup
+    app.include_router(setup.router)
 
     @app.get("/health", tags=["health"])
     async def health_check() -> dict:
