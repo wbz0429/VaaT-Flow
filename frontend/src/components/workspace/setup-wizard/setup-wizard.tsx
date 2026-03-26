@@ -1,12 +1,12 @@
 "use client";
 
 import {
-  BotIcon,
+  ActivityIcon,
   CheckCircle2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CpuIcon,
-  WrenchIcon,
+  UserPlusIcon,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 
@@ -14,15 +14,15 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
-import { AgentSetupStep } from "./agent-setup-step";
+import { AdminAccountStep } from "./admin-account-step";
 import { CompletionStep } from "./completion-step";
-import { ModelSelectionStep } from "./model-selection-step";
-import { ToolSelectionStep } from "./tool-selection-step";
+import { ModelSetupStep } from "./model-setup-step";
+import { SystemCheckStep } from "./system-check-step";
 
 const STEPS = [
+  { id: "check", label: "System Check", icon: ActivityIcon },
+  { id: "admin", label: "Admin Account", icon: UserPlusIcon },
   { id: "models", label: "Models", icon: CpuIcon },
-  { id: "tools", label: "Tools", icon: WrenchIcon },
-  { id: "agents", label: "Agents", icon: BotIcon },
   { id: "done", label: "Done", icon: CheckCircle2Icon },
 ] as const;
 
@@ -37,12 +37,9 @@ export function SetupWizard() {
   const isFirst = currentStep === 0;
   const isLast = currentStep === STEPS.length - 1;
 
-  const markComplete = useCallback(
-    (stepId: StepId) => {
-      setCompletedSteps((prev) => new Set([...prev, stepId]));
-    },
-    [],
-  );
+  const markComplete = useCallback((stepId: StepId) => {
+    setCompletedSteps((prev) => new Set([...prev, stepId]));
+  }, []);
 
   const goNext = useCallback(() => {
     markComplete(step.id);
@@ -101,9 +98,9 @@ export function SetupWizard() {
       {/* Step content */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-4xl">
-          {step.id === "models" && <ModelSelectionStep onComplete={goNext} />}
-          {step.id === "tools" && <ToolSelectionStep onComplete={goNext} />}
-          {step.id === "agents" && <AgentSetupStep onComplete={goNext} />}
+          {step.id === "check" && <SystemCheckStep onComplete={goNext} />}
+          {step.id === "admin" && <AdminAccountStep onComplete={goNext} />}
+          {step.id === "models" && <ModelSetupStep onComplete={goNext} />}
           {step.id === "done" && <CompletionStep />}
         </div>
       </div>
@@ -111,11 +108,7 @@ export function SetupWizard() {
       {/* Footer navigation */}
       {!isLast && (
         <div className="flex items-center justify-between border-t px-6 py-4">
-          <Button
-            variant="outline"
-            onClick={goPrev}
-            disabled={isFirst}
-          >
+          <Button variant="outline" onClick={goPrev} disabled={isFirst}>
             <ChevronLeftIcon className="mr-1.5 size-4" />
             Back
           </Button>
