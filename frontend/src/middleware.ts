@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 const protectedPaths = ["/workspace", "/admin"];
+const ALLO_MODE = process.env.ALLO_MODE ?? "development";
+const INTERNAL_GATEWAY_URL = process.env.INTERNAL_GATEWAY_URL ?? "http://gateway:8001";
 
 async function isSetupCompleted(request: NextRequest): Promise<boolean> {
   const cookie = request.cookies.get("allo_setup_done")?.value;
@@ -9,19 +11,22 @@ async function isSetupCompleted(request: NextRequest): Promise<boolean> {
   }
 
   try {
-    const statusUrl = new URL("/api/setup/status", request.url);
+    const statusUrl =
+      ALLO_MODE === "appliance"
+        ? new URL("/api/setup/status", INTERNAL_GATEWAY_URL)
+        : new URL("/api/setup/status", request.url);
     const res = await fetch(statusUrl.toString(), {
       headers: { Accept: "application/json" },
     });
     if (!res.ok) {
-      // Backend unreachable or errored — assume setup is done so we don't block
-      return true;
+      // In appliance mode, fail closed so first-run setup is not skipped.
+      return ALLO_MODE === "appliance" ? false : true;
     }
     const data = (await res.json()) as { setup_completed?: boolean };
     return data.setup_completed === true;
   } catch {
-    // Network failure — don't block the user
-    return true;
+    // In appliance mode, fail closed so first-run setup is not skipped.
+    return ALLO_MODE === "appliance" ? false : true;
   }
 }
 
@@ -62,6 +67,11 @@ export async function middleware(request: NextRequest) {
   if (!setupCompleted) {
     const setupUrl = new URL("/setup", request.url);
     return NextResponse.redirect(setupUrl);
+  }
+
+  // In appliance mode we intentionally run as a single local admin context.
+  if (ALLO_MODE === "appliance") {
+    return withSetupDoneCookie(NextResponse.next());
   }
 
   // Setup is done — cache it and check session auth

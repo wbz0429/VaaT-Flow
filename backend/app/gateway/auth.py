@@ -95,12 +95,14 @@ async def _get_first_row(result: object) -> object:
 
 
 def _get_row_value(row: object, index: int) -> str | None:
-    """Extract a string column from a DB row or return None for test doubles/invalid rows."""
-    if not isinstance(row, (tuple, list)):
+    """Extract a string column from a DB row or return None for invalid rows.
+
+    Supports plain tuples/lists, SQLAlchemy Row objects, and lightweight test doubles.
+    """
+    try:
+        value = row[index]  # type: ignore[index]
+    except Exception:
         return None
-    if index >= len(row):
-        return None
-    value = row[index]
     if not isinstance(value, str):
         return None
     return value
@@ -264,6 +266,27 @@ async def get_auth_context(request: Request, db: AsyncSession = Depends(get_db_s
         _stamp_request_state(request, ctx)
         return ctx
 
+    if ALLO_MODE == "appliance":
+        setup_completed = False
+        try:
+            result = await db.execute(text("SELECT value FROM appliance_settings WHERE key = 'setup_completed' LIMIT 1"))
+            row = await _get_first_row(result)
+            setup_completed = _get_row_value(row, 0) == "true"
+            logger.info("Auth: appliance request path=%s setup_completed=%s", request.url.path, setup_completed)
+        except Exception:
+            logger.exception("Auth: appliance setup status lookup failed")
+
+        if setup_completed:
+            result = await db.execute(text("SELECT id, slug FROM organizations ORDER BY created_at ASC LIMIT 1"))
+            row = await _get_first_row(result)
+            org_id = _get_row_value(row, 0)
+            logger.info("Auth: appliance request path=%s org_id=%s", request.url.path, org_id)
+            if org_id is not None:
+                ctx = AuthContext(user_id="appliance-admin", org_id=org_id, role="admin")
+                logger.info("Auth: appliance fallback accepted path=%s user_id=%s org_id=%s", request.url.path, ctx.user_id, ctx.org_id)
+                _stamp_request_state(request, ctx)
+                return ctx
+
     # 1. Try session cookie
     session_token = request.cookies.get("better-auth.session_token")
     if session_token:
@@ -318,6 +341,19 @@ async def get_optional_auth_context(request: Request, db: AsyncSession = Depends
     """
     if _get_runtime_skip_auth():
         return AuthContext(user_id=_DEV_USER_ID, org_id=_DEV_ORG_ID, role=_DEV_ROLE)
+
+    if ALLO_MODE == "appliance":
+        try:
+            result = await db.execute(text("SELECT value FROM appliance_settings WHERE key = 'setup_completed' LIMIT 1"))
+            row = await _get_first_row(result)
+            if _get_row_value(row, 0) == "true":
+                result = await db.execute(text("SELECT id FROM organizations ORDER BY created_at ASC LIMIT 1"))
+                org_row = await _get_first_row(result)
+                org_id = _get_row_value(org_row, 0)
+                if org_id is not None:
+                    return AuthContext(user_id="appliance-admin", org_id=org_id, role="admin")
+        except Exception:
+            logger.exception("Auth: optional appliance auth lookup failed")
 
     session_token = request.cookies.get("better-auth.session_token")
     if session_token:

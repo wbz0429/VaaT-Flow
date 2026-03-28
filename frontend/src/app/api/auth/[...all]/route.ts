@@ -1,6 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
+  getApplianceSessionByToken,
+  getApplianceSessionCookieMaxAgeSeconds,
+  getApplianceSessionCookieName,
+  signOutApplianceSession,
+} from "@/server/better-auth/appliance";
+import {
   getLocalDevSessionByToken,
   getLocalDevSessionCookieName,
   signInWithLocalDevAuth,
@@ -16,19 +22,20 @@ function jsonResponse(body: unknown, status = 200): NextResponse {
 
 function withSessionCookie(response: NextResponse, token: string): NextResponse {
   response.cookies.set({
-    name: getLocalDevSessionCookieName(),
+    name: ALLO_MODE === "appliance" ? getApplianceSessionCookieName() : getLocalDevSessionCookieName(),
     value: token,
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
+    ...(ALLO_MODE === "appliance" ? { maxAge: getApplianceSessionCookieMaxAgeSeconds() } : {}),
   });
   return response;
 }
 
 function clearSessionCookie(response: NextResponse): NextResponse {
   response.cookies.set({
-    name: getLocalDevSessionCookieName(),
+    name: ALLO_MODE === "appliance" ? getApplianceSessionCookieName() : getLocalDevSessionCookieName(),
     value: "",
     httpOnly: true,
     sameSite: "lax",
@@ -44,10 +51,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ all
   const route = params.all?.join("/") ?? "";
 
   if (route === "session") {
-    // TODO(Task 4.2): In appliance mode, use Better Auth with Postgres adapter
-    const session = await getLocalDevSessionByToken(
-      request.cookies.get(getLocalDevSessionCookieName())?.value,
-    );
+    const session = ALLO_MODE === "appliance"
+      ? await getApplianceSessionByToken(request.cookies.get(getApplianceSessionCookieName())?.value)
+      : await getLocalDevSessionByToken(request.cookies.get(getLocalDevSessionCookieName())?.value);
     return jsonResponse({ data: session, error: null });
   }
 
@@ -59,9 +65,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ al
   const route = params.all?.join("/") ?? "";
 
   if (route === "sign-up/email") {
-    // TODO(Task 4.2): In appliance mode, use Better Auth with Postgres adapter
     if (ALLO_MODE === "appliance") {
-      return jsonResponse({ data: null, error: { message: "Appliance auth not yet configured — see Task 4.2" } }, 501);
+      return jsonResponse(
+        {
+          data: null,
+          error: { message: "Sign-up is disabled in appliance mode. Complete setup for the first admin; later invites/signup are not supported yet." },
+        },
+        403,
+      );
     }
     const body = (await request.json()) as { email?: string; password?: string; name?: string };
     const result = await signUpWithLocalDevAuth({
@@ -77,9 +88,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ al
   }
 
   if (route === "sign-in/email") {
-    // TODO(Task 4.2): In appliance mode, use Better Auth with Postgres adapter
     if (ALLO_MODE === "appliance") {
-      return jsonResponse({ data: null, error: { message: "Appliance auth not yet configured — see Task 4.2" } }, 501);
+      return jsonResponse(
+        {
+          data: null,
+          error: { message: "Appliance mode does not use sign-in. Complete setup, then open /workspace directly." },
+        },
+        403,
+      );
     }
     const body = (await request.json()) as { email?: string; password?: string };
     const result = await signInWithLocalDevAuth({
@@ -94,6 +110,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ al
   }
 
   if (route === "sign-out") {
+    if (ALLO_MODE === "appliance") {
+      await signOutApplianceSession(
+        request.cookies.get(getApplianceSessionCookieName())?.value,
+      );
+      return clearSessionCookie(
+        jsonResponse({
+          data: null,
+          error: null,
+        }),
+      );
+    }
     await signOutLocalDevSession(
       request.cookies.get(getLocalDevSessionCookieName())?.value,
     );

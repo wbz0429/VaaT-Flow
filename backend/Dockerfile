@@ -28,11 +28,11 @@ WORKDIR /app
 # Copy backend source code
 COPY backend ./backend
 
-# Copy skills into image
+# Copy packaged skills into the appliance image at /app/skills.
 COPY skills ./skills
 
 # Copy default config files (used as fallback if /app/data/ configs don't exist yet)
-COPY config.example.yaml ./config.yaml
+COPY config.appliance.yaml ./config.yaml
 RUN echo '{"mcpServers":{},"skills":{}}' > ./extensions_config.json
 
 # Install dependencies with cache mount

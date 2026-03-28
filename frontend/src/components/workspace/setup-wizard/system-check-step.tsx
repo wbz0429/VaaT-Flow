@@ -31,7 +31,7 @@ export function SystemCheckStep({ onComplete }: { onComplete: () => void }) {
 
     // Check gateway health
     try {
-      const res = await fetch("/api/health");
+      const res = await fetch("/health");
       if (res.ok) {
         setServices((prev) =>
           prev.map((s) =>

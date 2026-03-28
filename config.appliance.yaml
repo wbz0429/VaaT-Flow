@@ -1,0 +1,20 @@
+# Minimal bootstrap config for Allo appliance mode.
+#
+# This file is intentionally valid-but-empty so the backend and LangGraph can
+# start before the first-run setup wizard writes the real runtime config into
+# /app/data/config.yaml.
+
+config_version: 2
+
+models: []
+
+tool_groups:
+  - name: web
+  - name: file:read
+  - name: file:write
+  - name: bash
+
+tools: []
+
+sandbox:
+  use: deerflow.sandbox.local:LocalSandboxProvider

@@ -25,6 +25,36 @@ DATA_DIR = Path(os.getenv("DEER_FLOW_DATA_DIR", "/app/data"))
 # ---------------------------------------------------------------------------
 
 PROVIDER_REGISTRY: dict[str, dict] = {
+    "platform_default": {
+        "protocol": "openai",
+        "use": "langchain_openai:ChatOpenAI",
+        "env_key": "PLATFORM_MODEL_API_KEY",
+        "api_key_field": "api_key",
+    },
+    "openai_official": {
+        "protocol": "openai",
+        "use": "langchain_openai:ChatOpenAI",
+        "env_key": "OPENAI_API_KEY",
+        "api_key_field": "api_key",
+    },
+    "anthropic_official": {
+        "protocol": "anthropic",
+        "use": "langchain_anthropic:ChatAnthropic",
+        "env_key": "ANTHROPIC_API_KEY",
+        "api_key_field": "api_key",
+    },
+    "openai_compatible": {
+        "protocol": "openai",
+        "use": "langchain_openai:ChatOpenAI",
+        "env_key": "CUSTOM_OPENAI_API_KEY",
+        "api_key_field": "api_key",
+    },
+    "anthropic_compatible": {
+        "protocol": "anthropic",
+        "use": "langchain_anthropic:ChatAnthropic",
+        "env_key": "CUSTOM_ANTHROPIC_API_KEY",
+        "api_key_field": "api_key",
+    },
     "openai": {
         "use": "langchain_openai:ChatOpenAI",
         "env_key": "OPENAI_API_KEY",
@@ -94,6 +124,16 @@ async def _get_setting(db: AsyncSession, key: str) -> str | None:
     return row
 
 
+def _get_platform_default_api_key() -> str:
+    """Return the platform default model API key from process env if present."""
+    return os.getenv("PLATFORM_MODEL_API_KEY", os.getenv("OPENAI_API_KEY", ""))
+
+
+def _get_platform_default_base_url() -> str:
+    """Return the platform default model base URL from process env if present."""
+    return os.getenv("PLATFORM_MODEL_BASE_URL", "")
+
+
 def _build_model_entries(providers_data: list[dict]) -> list[dict]:
     """Convert provider configs into config.yaml model entries.
 
@@ -114,11 +154,17 @@ def _build_model_entries(providers_data: list[dict]) -> list[dict]:
 
         models = provider_cfg.get("models", [])
         for m in models:
+            use_path = registry["use"]
+            if provider_name == "platform_default" and provider_cfg.get("protocol") == "anthropic":
+                use_path = "langchain_anthropic:ChatAnthropic"
+            elif provider_name == "platform_default" and provider_cfg.get("protocol") == "openai":
+                use_path = "langchain_openai:ChatOpenAI"
+
             entry: dict = {
                 "name": m.get("name", m.get("model", "")),
                 "display_name": m.get("display_name", m.get("name", m.get("model", ""))),
                 "description": m.get("description", ""),
-                "use": registry["use"],
+                "use": use_path,
                 "model": m.get("model", m.get("name", "")),
                 registry["api_key_field"]: f"${registry['env_key']}",
             }
@@ -129,6 +175,13 @@ def _build_model_entries(providers_data: list[dict]) -> list[dict]:
             for optional_key in ("max_tokens", "temperature", "supports_thinking", "supports_vision", "supports_reasoning_effort", "when_thinking_enabled", "base_url"):
                 if optional_key in m:
                     entry[optional_key] = m[optional_key]
+            if provider_cfg.get("base_url") and "base_url" not in entry and provider_cfg.get("protocol") == "openai":
+                entry["base_url"] = provider_cfg["base_url"]
+            # For platform_default, fall back to PLATFORM_MODEL_BASE_URL env var
+            if provider_name == "platform_default" and "base_url" not in entry:
+                platform_base_url = _get_platform_default_base_url()
+                if platform_base_url:
+                    entry["base_url"] = platform_base_url
             entries.append(entry)
     return entries
 
@@ -151,6 +204,8 @@ def _build_env_lines(providers_data: list[dict]) -> list[str]:
             continue
         env_key = registry["env_key"]
         api_key = provider_cfg.get("api_key", "")
+        if provider_name == "platform_default" and not api_key:
+            api_key = _get_platform_default_api_key()
         if env_key not in seen_keys and api_key:
             lines.append(f"{env_key}={api_key}")
             seen_keys.add(env_key)

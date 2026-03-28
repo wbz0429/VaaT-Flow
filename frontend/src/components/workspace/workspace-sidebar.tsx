@@ -12,6 +12,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { isApplianceMode } from "@/core/setup/appliance-mode";
 import { authClient } from "@/server/better-auth/client";
 
 import { RecentChatList } from "./recent-chat-list";
@@ -26,6 +27,10 @@ export function WorkspaceSidebar({
   const router = useRouter();
 
   async function handleLogout() {
+    if (isApplianceMode()) {
+      router.push("/workspace");
+      return;
+    }
     await authClient.signOut();
     router.push("/login");
   }
@@ -42,15 +47,17 @@ export function WorkspaceSidebar({
         </SidebarContent>
         <SidebarFooter>
           <WorkspaceNavMenu />
-          <Button
-            variant="ghost"
-            size={isSidebarOpen ? "default" : "icon"}
-            className="w-full justify-start gap-2 text-muted-foreground"
-            onClick={handleLogout}
-          >
-            <LogOutIcon className="size-4" />
-            {isSidebarOpen && <span>Sign out</span>}
-          </Button>
+          {!isApplianceMode() && (
+            <Button
+              variant="ghost"
+              size={isSidebarOpen ? "default" : "icon"}
+              className="w-full justify-start gap-2 text-muted-foreground"
+              onClick={handleLogout}
+            >
+              <LogOutIcon className="size-4" />
+              {isSidebarOpen && <span>Sign out</span>}
+            </Button>
+          )}
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>

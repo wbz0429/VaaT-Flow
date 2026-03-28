@@ -19,8 +19,17 @@ export interface AdminAccountResponse {
 
 export interface ModelProviderConfig {
   provider: string;
+  protocol?: "openai" | "anthropic";
+  display_name?: string;
   api_key: string;
-  models: Array<{ name: string; display_name: string }>;
+  base_url?: string;
+  models: Array<{
+    name: string;
+    display_name: string;
+    supports_thinking?: boolean;
+    supports_reasoning_effort?: boolean;
+    supports_vision?: boolean;
+  }>;
 }
 
 export interface SetupModelsRequest {
@@ -30,6 +39,28 @@ export interface SetupModelsRequest {
 export interface SetupModelsResponse {
   success: boolean;
   model_count: number;
+}
+
+export interface SearchProvidersRequest {
+  tavily_api_key?: string;
+  jina_api_key?: string;
+}
+
+export async function submitSearchConfig(
+  data: SearchProvidersRequest,
+): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE}/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res
+      .json()
+      .catch(() => ({ detail: "Failed to save search provider config" }));
+    throw new Error(err.detail ?? "Failed to save search provider config");
+  }
+  return res.json() as Promise<{ success: boolean }>;
 }
 
 export async function getSetupStatus(): Promise<SetupStatus> {

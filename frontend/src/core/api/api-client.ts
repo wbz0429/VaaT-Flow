@@ -33,8 +33,14 @@ function createCompatibleClient(isMock?: boolean): LangGraphClient {
   return client;
 }
 
-let _singleton: LangGraphClient | null = null;
+let _realClient: LangGraphClient | null = null;
+let _mockClient: LangGraphClient | null = null;
+
 export function getAPIClient(isMock?: boolean): LangGraphClient {
-  _singleton ??= createCompatibleClient(isMock);
-  return _singleton;
+  if (isMock) {
+    _mockClient ??= createCompatibleClient(true);
+    return _mockClient;
+  }
+  _realClient ??= createCompatibleClient(false);
+  return _realClient;
 }

@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -11,6 +12,25 @@ from deerflow.config.extensions_config import ExtensionsConfig, get_extensions_c
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["mcp"])
+
+
+def _resolve_extensions_config_write_path() -> Path:
+    """Resolve where MCP/extensions config updates should be written.
+
+    Reads should keep the stricter `ExtensionsConfig.resolve_config_path()` semantics,
+    but writes need to honor `DEER_FLOW_EXTENSIONS_CONFIG_PATH` even on first boot
+    before the target file exists yet.
+    """
+    env_path = Path.cwd().parent / "extensions_config.json"
+    configured_path = os.getenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH")
+    if configured_path:
+        return Path(configured_path)
+
+    resolved_path = ExtensionsConfig.resolve_config_path()
+    if resolved_path is not None:
+        return resolved_path
+
+    return env_path
 
 
 class McpOAuthConfigResponse(BaseModel):
@@ -135,16 +155,15 @@ async def update_mcp_configuration(request: McpConfigUpdateRequest, auth: AuthCo
         ```
     """
     try:
-        # Get the current config path (or determine where to save it)
-        config_path = ExtensionsConfig.resolve_config_path()
-
-        # If no config file exists, create one in the parent directory (project root)
-        if config_path is None:
-            config_path = Path.cwd().parent / "extensions_config.json"
+        config_path = _resolve_extensions_config_write_path()
+        if not config_path.exists():
             logger.info(f"No existing extensions config found. Creating new config at: {config_path}")
 
-        # Load current config to preserve skills configuration
-        current_config = get_extensions_config()
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Load current config to preserve skills configuration. On first boot in
+        # appliance mode, the configured path may not exist yet.
+        current_config = get_extensions_config() if config_path.exists() else ExtensionsConfig(mcp_servers={}, skills={})
 
         # Convert request to dict format for JSON serialization
         config_data = {

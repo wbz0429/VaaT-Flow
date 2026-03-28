@@ -1,6 +1,8 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+const isApplianceMode = (process.env.ALLO_MODE ?? process.env.NEXT_PUBLIC_ALLO_MODE ?? "development") === "appliance";
+
 export const env = createEnv({
   /**
    * Specify your server-side environment variables schema here. This way you can ensure the app
@@ -9,7 +11,7 @@ export const env = createEnv({
   server: {
     DATABASE_URL: z.string().optional(),
     BETTER_AUTH_SECRET:
-      process.env.NODE_ENV === "production"
+      process.env.NODE_ENV === "production" && !isApplianceMode
         ? z.string()
         : z.string().optional(),
     BETTER_AUTH_GITHUB_CLIENT_ID: z.string().optional(),

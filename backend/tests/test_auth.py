@@ -7,7 +7,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from sqlalchemy.exc import ProgrammingError
 
-from app.gateway.auth import _DEV_ORG_ID, _DEV_ROLE, _DEV_USER_ID, AuthContext, _get_runtime_env, _get_runtime_skip_auth, _resolve_dev_json_session_fallback, _resolve_session_from_db, get_auth_context, get_optional_auth_context
+from app.gateway.auth import (
+    _DEV_ORG_ID,
+    _DEV_ROLE,
+    _DEV_USER_ID,
+    AuthContext,
+    _get_row_value,
+    _get_runtime_env,
+    _get_runtime_skip_auth,
+    _resolve_dev_json_session_fallback,
+    _resolve_session_from_db,
+    get_auth_context,
+    get_optional_auth_context,
+)
 
 # ---------------------------------------------------------------------------
 # AuthContext model tests
@@ -467,6 +479,15 @@ async def test_get_optional_auth_context_appliance_skips_dev_fallbacks() -> None
     assert ctx is None
     mock_dev_fallback.assert_not_awaited()
     mock_json_fallback.assert_not_awaited()
+
+
+def test_get_row_value_supports_sqlalchemy_row_like_objects() -> None:
+    class FakeRow:
+        def __getitem__(self, index: int) -> object:
+            values = ["org-123", "default"]
+            return values[index]
+
+    assert _get_row_value(FakeRow(), 0) == "org-123"
 
 
 @pytest.mark.asyncio

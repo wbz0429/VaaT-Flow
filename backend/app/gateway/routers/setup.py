@@ -11,6 +11,7 @@ import logging
 import os
 import secrets
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -55,8 +56,11 @@ class CreateAdminResponse(BaseModel):
 class ModelProviderConfig(BaseModel):
     """A single model provider with its API key and available models."""
 
-    provider: str = Field(..., description="Provider name (e.g. 'openai', 'anthropic')")
-    api_key: str = Field(..., description="API key for this provider")
+    provider: str = Field(..., description="Provider identifier")
+    protocol: str | None = Field(default=None, description="Transport protocol family, e.g. 'openai' or 'anthropic'")
+    display_name: str | None = Field(default=None, description="Human-readable provider name")
+    api_key: str = Field(default="", description="API key for this provider")
+    base_url: str | None = Field(default=None, description="Optional custom API base URL")
     models: list[dict] = Field(default_factory=list, description="List of model objects with 'name' and 'display_name'")
 
 
@@ -75,6 +79,19 @@ class SaveModelsResponse(BaseModel):
 
 class SetupCompleteResponse(BaseModel):
     """POST /api/setup/complete response."""
+
+    success: bool
+
+
+class SaveSearchProvidersRequest(BaseModel):
+    """POST /api/setup/search request body."""
+
+    tavily_api_key: str | None = Field(default=None, description="Optional Tavily API key")
+    jina_api_key: str | None = Field(default=None, description="Optional Jina API key")
+
+
+class SaveSearchProvidersResponse(BaseModel):
+    """POST /api/setup/search response."""
 
     success: bool
 
@@ -116,6 +133,22 @@ async def _set_setting(db: AsyncSession, key: str, value: str) -> None:
     await db.commit()
 
 
+def _validate_model_providers(providers: list[ModelProviderConfig]) -> None:
+    """Validate setup model provider payload against appliance business rules."""
+    if not providers:
+        raise HTTPException(status_code=422, detail="At least one model provider must be configured")
+
+    for provider in providers:
+        if not provider.models:
+            raise HTTPException(status_code=422, detail=f"Provider '{provider.provider}' must include at least one model")
+
+        if provider.provider in {"openai_official", "anthropic_official", "openai_compatible", "anthropic_compatible"} and not provider.api_key:
+            raise HTTPException(status_code=422, detail=f"Provider '{provider.provider}' requires an API key")
+
+        if provider.provider in {"openai_compatible", "anthropic_compatible"} and not provider.base_url:
+            raise HTTPException(status_code=422, detail=f"Provider '{provider.provider}' requires a base_url")
+
+
 def _hash_password(password: str) -> str:
     """Hash a password using scrypt with a random salt.
 
@@ -131,6 +164,14 @@ def _hash_password(password: str) -> str:
     salt = os.urandom(16)
     derived = hashlib.scrypt(password.encode(), salt=salt, n=16384, r=8, p=1, dklen=64)
     return f"{salt.hex()}:{derived.hex()}"
+
+
+def _db_now_expression(db: AsyncSession) -> str:
+    """Return a portable SQL expression representing the current timestamp."""
+    dialect_name = db.bind.dialect.name if db.bind is not None else ""
+    if dialect_name == "sqlite":
+        return "CURRENT_TIMESTAMP"
+    return "now()"
 
 
 # ---------------------------------------------------------------------------
@@ -196,6 +237,8 @@ async def create_admin(
     session_id = str(uuid.uuid4())
     session_token = secrets.token_hex(32)
     hashed_password = _hash_password(request.password)
+    now_expr = _db_now_expression(db)
+    expires_at = datetime.now(UTC) + timedelta(days=30)
 
     # 1. Create default organization
     org = Organization(id=org_id, name="Default", slug="default")
@@ -204,13 +247,13 @@ async def create_admin(
 
     # 2. Create user in Better Auth's user table (raw SQL)
     await db.execute(
-        text('INSERT INTO "user" (id, name, email, "emailVerified", image, "createdAt", "updatedAt") VALUES (:id, :name, :email, true, \'\', now(), now())'),
+        text(f'INSERT INTO "user" (id, name, email, "emailVerified", image, "createdAt", "updatedAt") VALUES (:id, :name, :email, true, \'\', {now_expr}, {now_expr})'),
         {"id": user_id, "name": request.name, "email": request.email},
     )
 
     # 3. Create account (credential provider)
     await db.execute(
-        text('INSERT INTO account (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt") VALUES (:id, :account_id, \'credential\', :user_id, :hashed_password, now(), now())'),
+        text(f'INSERT INTO account (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt") VALUES (:id, :account_id, \'credential\', :user_id, :hashed_password, {now_expr}, {now_expr})'),
         {"id": account_id, "account_id": user_id, "user_id": user_id, "hashed_password": hashed_password},
     )
 
@@ -220,8 +263,8 @@ async def create_admin(
 
     # 5. Create session in Better Auth's session table
     await db.execute(
-        text('INSERT INTO session (id, "userId", token, "expiresAt", "ipAddress", "userAgent", "createdAt", "updatedAt") VALUES (:id, :user_id, :token, now() + interval \'30 days\', \'\', \'\', now(), now())'),
-        {"id": session_id, "user_id": user_id, "token": session_token},
+        text(f'INSERT INTO session (id, "userId", token, "expiresAt", "ipAddress", "userAgent", "createdAt", "updatedAt") VALUES (:id, :user_id, :token, :expires_at, \'\', \'\', {now_expr}, {now_expr})'),
+        {"id": session_id, "user_id": user_id, "token": session_token, "expires_at": expires_at},
     )
 
     await db.commit()
@@ -241,6 +284,8 @@ async def save_models(
     db: AsyncSession = Depends(_require_setup_incomplete),
 ) -> SaveModelsResponse:
     """Persist model provider config to appliance settings."""
+    _validate_model_providers(request.providers)
+
     providers_json = json.dumps([p.model_dump() for p in request.providers], ensure_ascii=False)
     await _set_setting(db, "model_providers", providers_json)
 
@@ -270,18 +315,42 @@ async def complete_setup(
     db: AsyncSession = Depends(_require_setup_incomplete),
 ) -> SetupCompleteResponse:
     """Mark setup as done and optionally render runtime config files."""
-    await _set_setting(db, "setup_completed", "true")
-    logger.info("Setup: marked as completed")
-
-    # Trigger config renderer if available (may not exist yet)
     try:
         from app.gateway.services.config_renderer import render_appliance_config
 
         await render_appliance_config(db)
         logger.info("Setup: config renderer executed successfully")
     except ImportError:
-        logger.warning("Setup: config_renderer service not available yet, skipping runtime config generation")
+        raise HTTPException(status_code=500, detail="Setup config renderer is unavailable")
     except Exception:
-        logger.exception("Setup: config renderer failed (non-fatal)")
+        logger.exception("Setup: config renderer failed")
+        raise HTTPException(status_code=500, detail="Failed to render appliance runtime configuration")
+
+    await _set_setting(db, "setup_completed", "true")
+    logger.info("Setup: marked as completed")
 
     return SetupCompleteResponse(success=True)
+
+
+@router.post(
+    "/search",
+    response_model=SaveSearchProvidersResponse,
+    summary="Save Search Provider Settings",
+    description="Save optional search provider settings during setup. Only works before setup is completed.",
+)
+async def save_search_providers(
+    request: SaveSearchProvidersRequest,
+    db: AsyncSession = Depends(_require_setup_incomplete),
+) -> SaveSearchProvidersResponse:
+    """Persist optional search provider settings to appliance settings."""
+    payload = {
+        "tavily_api_key": request.tavily_api_key or "",
+        "jina_api_key": request.jina_api_key or "",
+    }
+    await _set_setting(db, "search_providers", json.dumps(payload, ensure_ascii=False))
+    logger.info(
+        "Setup: saved search provider settings (tavily=%s, jina=%s)",
+        bool(request.tavily_api_key),
+        bool(request.jina_api_key),
+    )
+    return SaveSearchProvidersResponse(success=True)

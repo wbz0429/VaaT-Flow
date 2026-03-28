@@ -147,35 +147,17 @@ BETTER_AUTH_SECRET=$_auth_secret
 # ── Network ───────────────────────────────────────────────────────────────
 PORT=$PORT
 
-# ── Paths (defaults work for standard Docker install) ─────────────────────
-DEER_FLOW_HOME=$ALLO_DIR/data
-DEER_FLOW_CONFIG_PATH=$ALLO_DIR/config.yaml
-DEER_FLOW_EXTENSIONS_CONFIG_PATH=$ALLO_DIR/extensions_config.json
+# ── Optional advanced settings ─────────────────────────────────────────────
 DEER_FLOW_DOCKER_SOCKET=/var/run/docker.sock
-DEER_FLOW_REPO_ROOT=$ALLO_DIR
 EOF
 
     chmod 600 "$ALLO_DIR/.env"
     success "Environment file created at $ALLO_DIR/.env"
 }
 
-# ── Ensure data and config directories/files exist ────────────────────────────
+# ── Ensure appliance data directory exists ────────────────────────────────────
 prepare_data() {
     mkdir -p "$ALLO_DIR/data"
-    mkdir -p "$ALLO_DIR/skills"
-
-    # Create minimal config.yaml if missing
-    if [ ! -f "$ALLO_DIR/config.yaml" ]; then
-        cat > "$ALLO_DIR/config.yaml" <<'EOF'
-# Allo configuration — see docs for full options
-{}
-EOF
-    fi
-
-    # Create minimal extensions_config.json if missing
-    if [ ! -f "$ALLO_DIR/extensions_config.json" ]; then
-        printf '{"mcpServers": {}, "skills": []}\n' > "$ALLO_DIR/extensions_config.json"
-    fi
 }
 
 # ── Start services ────────────────────────────────────────────────────────────

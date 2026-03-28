@@ -59,13 +59,16 @@ tests/
 scripts/
 logs/
 docker/
-skills/
 frontend/.next
 frontend/node_modules
 backend/.venv
+backend/.deer-flow
+backend/.deer-flow/
 backend/htmlcov
 backend/.coverage
 *.md
 !README.md
 !frontend/README.md
 !backend/README.md
+!skills/
+!skills/**

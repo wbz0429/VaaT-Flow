@@ -239,15 +239,19 @@ tool_search:
 # ============================================================================
 # Sandbox Configuration
 # ============================================================================
-# Choose between local sandbox (direct execution) or Docker-based AIO sandbox
+# Choose between local sandbox (direct execution) or Docker-based AIO sandbox.
+# Appliance/default installs should use LocalSandboxProvider unless you explicitly
+# want Docker-socket / container-per-task execution for advanced deployments.
 
-# Option 1: Local Sandbox (Default)
-# Executes commands directly on the host machine
+# Option 1: Local Sandbox (Appliance Default / Recommended)
+# Executes commands directly in the app runtime.
+# This is the default for appliance packaging and the safest starting point.
 sandbox:
   use: deerflow.sandbox.local:LocalSandboxProvider
 
-# Option 2: Container-based AIO Sandbox
-# Executes commands in isolated containers (Docker or Apple Container)
+# Option 2: Container-based AIO Sandbox (Advanced / Opt-in)
+# Executes commands in isolated containers (Docker or Apple Container).
+# Use this only if you intentionally want Docker-socket / AIO mode.
 # On macOS: Automatically prefers Apple Container if available, falls back to Docker
 # On other platforms: Uses Docker
 # Uncomment to use:
@@ -286,9 +290,9 @@ sandbox:
 #   #   API_KEY: $MY_API_KEY        # Reads from host's MY_API_KEY env var
 #   #   DATABASE_URL: $DATABASE_URL  # Reads from host's DATABASE_URL env var
 
-# Option 3: Provisioner-managed AIO Sandbox (docker-compose-dev)
+# Option 3: Provisioner-managed AIO Sandbox (advanced cluster installs)
 # Each sandbox_id gets a dedicated Pod in k3s, managed by the provisioner.
-# Recommended for production or advanced users who want better isolation and scalability.:
+# Recommended only for advanced users who want better isolation and scalability.:
 # sandbox:
 #   use: deerflow.community.aio_sandbox:AioSandboxProvider
 #   provisioner_url: http://provisioner:8002
@@ -316,13 +320,15 @@ sandbox:
 # Configure skills directory for specialized agent workflows
 
 skills:
-  # Path to skills directory on the host (relative to project root or absolute)
-  # Default: ../skills (relative to backend directory)
+  # Path to skills directory on disk (relative to current working directory or absolute).
+  # Default behavior: use the packaged sibling skills directory. In appliance images
+  # that resolves to /app/skills; in a source checkout it resolves to <repo>/skills.
   # Uncomment to customize:
   # path: /absolute/path/to/custom/skills
 
   # Path where skills are mounted in the sandbox container
-  # This is used by the agent to access skills in both local and Docker sandbox
+  # This is used by the agent to access skills in both local and Docker sandbox.
+  # Keep /mnt/skills unless you are intentionally customizing sandbox mounts.
   # Default: /mnt/skills
   container_path: /mnt/skills
 

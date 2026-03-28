@@ -6,6 +6,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CpuIcon,
+  GlobeIcon,
   UserPlusIcon,
 } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -17,12 +18,14 @@ import { cn } from "@/lib/utils";
 import { AdminAccountStep } from "./admin-account-step";
 import { CompletionStep } from "./completion-step";
 import { ModelSetupStep } from "./model-setup-step";
+import { SearchSetupStep } from "./search-setup-step";
 import { SystemCheckStep } from "./system-check-step";
 
 const STEPS = [
   { id: "check", label: "System Check", icon: ActivityIcon },
   { id: "admin", label: "Admin Account", icon: UserPlusIcon },
   { id: "models", label: "Models", icon: CpuIcon },
+  { id: "search", label: "Search", icon: GlobeIcon },
   { id: "done", label: "Done", icon: CheckCircle2Icon },
 ] as const;
 
@@ -101,6 +104,7 @@ export function SetupWizard() {
           {step.id === "check" && <SystemCheckStep onComplete={goNext} />}
           {step.id === "admin" && <AdminAccountStep onComplete={goNext} />}
           {step.id === "models" && <ModelSetupStep onComplete={goNext} />}
+          {step.id === "search" && <SearchSetupStep onComplete={goNext} />}
           {step.id === "done" && <CompletionStep />}
         </div>
       </div>

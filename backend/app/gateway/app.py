@@ -1,13 +1,16 @@
 import logging
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import Boolean, Column, DateTime, MetaData, String, Table, Text, select
 
 from app.gateway.config import get_gateway_config
 from app.gateway.db.database import async_engine
-from app.gateway.db.models import Base
+from app.gateway.db.models import ApplianceSettings, Base
 from app.gateway.routers import (
     admin,
     agents,
@@ -34,6 +37,53 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+ALLO_MODE = os.getenv("ALLO_MODE", "development")
+
+
+_auth_metadata = MetaData()
+better_auth_user_table = Table(
+    "user",
+    _auth_metadata,
+    Column("id", String(36), primary_key=True),
+    Column("name", String(255), nullable=False),
+    Column("email", String(255), nullable=False, unique=True),
+    Column("emailVerified", Boolean, nullable=False, default=False),
+    Column("image", Text, nullable=False, default=""),
+    Column("createdAt", DateTime(timezone=True), nullable=False, default=datetime.utcnow),
+    Column("updatedAt", DateTime(timezone=True), nullable=False, default=datetime.utcnow),
+)
+better_auth_account_table = Table(
+    "account",
+    _auth_metadata,
+    Column("id", String(36), primary_key=True),
+    Column("accountId", String(255), nullable=False),
+    Column("providerId", String(255), nullable=False),
+    Column("userId", String(36), nullable=False),
+    Column("password", Text, nullable=True),
+    Column("createdAt", DateTime(timezone=True), nullable=False, default=datetime.utcnow),
+    Column("updatedAt", DateTime(timezone=True), nullable=False, default=datetime.utcnow),
+)
+better_auth_session_table = Table(
+    "session",
+    _auth_metadata,
+    Column("id", String(36), primary_key=True),
+    Column("userId", String(36), nullable=False),
+    Column("token", Text, nullable=False, unique=True),
+    Column("expiresAt", DateTime(timezone=True), nullable=False),
+    Column("ipAddress", Text, nullable=False, default=""),
+    Column("userAgent", Text, nullable=False, default=""),
+    Column("createdAt", DateTime(timezone=True), nullable=False, default=datetime.utcnow),
+    Column("updatedAt", DateTime(timezone=True), nullable=False, default=datetime.utcnow),
+)
+
+
+async def _ensure_appliance_auth_tables() -> None:
+    """Create the minimal Better Auth tables required by appliance mode."""
+    if ALLO_MODE != "appliance":
+        return
+
+    async with async_engine.begin() as conn:
+        await conn.run_sync(_auth_metadata.create_all)
 
 
 @asynccontextmanager
@@ -55,6 +105,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         async with async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+        await _ensure_appliance_auth_tables()
         logger.info("Database tables created/verified successfully")
     except Exception:
         logger.exception("Failed to create database tables — auth features will be unavailable")
@@ -240,7 +291,25 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
         Returns:
             Service health status information.
         """
-        return {"status": "healthy", "service": "allo-gateway"}
+        health_status: dict[str, str | bool | None] = {
+            "status": "healthy",
+            "service": "allo-gateway",
+            "database": "ok",
+            "setup_completed": None,
+        }
+
+        try:
+            async with async_engine.begin() as conn:
+                result = await conn.execute(select(ApplianceSettings.value).where(ApplianceSettings.key == "setup_completed"))
+                setup_completed = result.scalar_one_or_none()
+                if setup_completed is not None:
+                    health_status["setup_completed"] = setup_completed == "true"
+        except Exception:
+            logger.exception("Health check database probe failed")
+            health_status["database"] = "error"
+            health_status["setup_completed"] = None
+
+        return health_status
 
     return app
 
