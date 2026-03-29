@@ -3,8 +3,14 @@ import { type NextRequest, NextResponse } from "next/server";
 const protectedPaths = ["/workspace", "/admin"];
 const ALLO_MODE = process.env.ALLO_MODE ?? "development";
 const INTERNAL_GATEWAY_URL = process.env.INTERNAL_GATEWAY_URL ?? "http://gateway:8001";
+const BUILD_TARGET = process.env.BUILD_TARGET ?? "";
 
 async function isSetupCompleted(request: NextRequest): Promise<boolean> {
+  // Desktop mode: setup is handled by Tauri login flow, always consider complete
+  if (BUILD_TARGET === "desktop") {
+    return true;
+  }
+
   const cookie = request.cookies.get("allo_setup_done")?.value;
   if (cookie === "1") {
     return true;
@@ -40,6 +46,11 @@ function withSetupDoneCookie(response: NextResponse): NextResponse {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Desktop mode: skip all server-side auth — Tauri handles it
+  if (BUILD_TARGET === "desktop") {
+    return NextResponse.next();
+  }
 
   const isSetupRoute =
     pathname === "/setup" || pathname.startsWith("/setup/");

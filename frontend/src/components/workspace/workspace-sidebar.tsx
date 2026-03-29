@@ -16,6 +16,7 @@ import { isApplianceMode } from "@/core/setup/appliance-mode";
 import { authClient } from "@/server/better-auth/client";
 
 import { RecentChatList } from "./recent-chat-list";
+import { SyncStatusIndicator } from "./sync-status";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceNavChatList } from "./workspace-nav-chat-list";
 import { WorkspaceNavMenu } from "./workspace-nav-menu";
@@ -46,6 +47,7 @@ export function WorkspaceSidebar({
           {isSidebarOpen && <RecentChatList />}
         </SidebarContent>
         <SidebarFooter>
+          <SyncStatusIndicator />
           <WorkspaceNavMenu />
           {!isApplianceMode() && (
             <Button

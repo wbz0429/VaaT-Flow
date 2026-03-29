@@ -1,6 +1,17 @@
 import { env } from "@/env";
 
+/**
+ * Detect if running inside Tauri desktop shell.
+ */
+export function isTauriEnvironment(): boolean {
+  return typeof window !== "undefined" && "__TAURI__" in window;
+}
+
 export function getBackendBaseURL() {
+  // Tauri desktop: direct to local Gateway (no nginx proxy)
+  if (isTauriEnvironment()) {
+    return "http://127.0.0.1:8001";
+  }
   if (env.NEXT_PUBLIC_BACKEND_BASE_URL) {
     return env.NEXT_PUBLIC_BACKEND_BASE_URL;
   } else {
@@ -9,6 +20,10 @@ export function getBackendBaseURL() {
 }
 
 export function getLangGraphBaseURL(isMock?: boolean) {
+  // Tauri desktop: direct to local LangGraph server
+  if (isTauriEnvironment()) {
+    return "http://127.0.0.1:2024";
+  }
   if (env.NEXT_PUBLIC_LANGGRAPH_BASE_URL) {
     return env.NEXT_PUBLIC_LANGGRAPH_BASE_URL;
   } else if (isMock) {

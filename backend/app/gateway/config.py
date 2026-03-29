@@ -22,9 +22,21 @@ def get_gateway_config() -> GatewayConfig:
     global _gateway_config
     if _gateway_config is None:
         cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+        origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+
+        # Desktop mode: allow Tauri WebView origins
+        if os.getenv("DEERFLOW_DESKTOP_MODE"):
+            origins.extend([
+                "tauri://localhost",
+                "https://tauri.localhost",
+                "http://tauri.localhost",
+                "http://127.0.0.1:8001",
+                "http://localhost:8001",
+            ])
+
         _gateway_config = GatewayConfig(
             host=os.getenv("GATEWAY_HOST", "0.0.0.0"),
             port=int(os.getenv("GATEWAY_PORT", "8001")),
-            cors_origins=[origin.strip() for origin in cors_origins_str.split(",") if origin.strip()],
+            cors_origins=origins,
         )
     return _gateway_config

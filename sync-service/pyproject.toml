@@ -1,0 +1,33 @@
+[project]
+name = "vaatflow-sync"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.30",
+    "pyjwt>=2.9",
+    "bcrypt>=4.2",
+    "pydantic[email]>=2.10",
+    "cryptography>=44.0",
+    "python-multipart>=0.0.18",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "httpx>=0.28",
+    "pytest-asyncio>=0.24",
+    "aiosqlite>=0.21",
+]
+
+[tool.ruff]
+line-length = 240
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
