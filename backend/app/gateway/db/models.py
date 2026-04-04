@@ -359,6 +359,23 @@ class ThreadRun(Base):
         super().__init__(**kwargs)
 
 
+class ThreadKnowledgeBase(Base):
+    """Join table linking threads to knowledge bases."""
+
+    __tablename__ = "thread_knowledge_bases"
+    __table_args__ = (UniqueConstraint("thread_id", "kb_id", name="uq_thread_kb"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, insert_default=lambda: str(uuid.uuid4()))
+    thread_id: Mapped[str] = mapped_column(String(255), ForeignKey("threads.id", ondelete="CASCADE"), nullable=False, index=True)
+    kb_id: Mapped[str] = mapped_column(String(36), ForeignKey("knowledge_bases.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    def __init__(self, **kwargs: object) -> None:
+        if "id" not in kwargs:
+            kwargs["id"] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+
 class UserMemory(Base):
     """Per-user memory document stored in Postgres."""
 

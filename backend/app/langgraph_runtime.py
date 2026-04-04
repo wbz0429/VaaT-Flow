@@ -15,6 +15,7 @@ from sqlalchemy.pool import NullPool
 from app.gateway.db.database import DATABASE_URL
 from app.gateway.db.models import Thread
 from app.gateway.redis_client import get_redis
+from app.gateway.services.kb_search_store_pg import PostgresKBSearchStore
 from app.gateway.services.marketplace_install_store_pg import PostgresMarketplaceInstallStore
 from app.gateway.services.mcp_config_store_pg import PostgresMcpConfigStore
 from app.gateway.services.memory_store_pg import PostgresMemoryStore
@@ -47,6 +48,8 @@ def _ensure_runtime_stores_registered() -> None:
         register_store("marketplace", PostgresMarketplaceInstallStore(runtime_async_session_factory))
     if get_store("key") is None:
         register_store("key", PostgresModelKeyResolver(runtime_async_session_factory, get_redis))
+    if get_store("kb_search") is None:
+        register_store("kb_search", PostgresKBSearchStore(runtime_async_session_factory))
 
 
 async def _resolve_user_from_thread(config: dict) -> UserContext | None:
@@ -138,5 +141,23 @@ async def make_lead_agent(config):
         if isinstance(marketplace_store, PostgresMarketplaceInstallStore):
             metadata["resolved_managed_tools"] = sorted(await marketplace_store.get_managed_runtime_tools())
             metadata["resolved_installed_tools"] = sorted(await marketplace_store.get_installed_runtime_tools(ctx.org_id))
+
+    # Resolve thread-bound knowledge bases
+    kb_search_store = get_store("kb_search")
+    if kb_search_store and hasattr(kb_search_store, "get_thread_kb_ids"):
+        configurable = config.get("configurable", {})
+        thread_id = configurable.get("thread_id") or configurable.get("threadId")
+        if thread_id:
+            try:
+                thread_kb_ids = await kb_search_store.get_thread_kb_ids(thread_id)
+            except Exception as e:
+                logger.warning("Failed to resolve thread KB IDs: %s", e)
+                thread_kb_ids = []
+            context_kb_ids = configurable.get("kb_ids", [])
+            if isinstance(context_kb_ids, str):
+                context_kb_ids = [context_kb_ids]
+            resolved_kb_ids = list(set(thread_kb_ids + context_kb_ids))
+            if resolved_kb_ids:
+                metadata["resolved_kb_ids"] = resolved_kb_ids
 
     return harness_make_lead_agent(config)

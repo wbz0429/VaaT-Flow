@@ -7,7 +7,7 @@ from deerflow.config import get_app_config
 from deerflow.context import get_user_context
 from deerflow.reflection import resolve_variable
 from deerflow.store_registry import get_store
-from deerflow.stores import MarketplaceInstallStore
+from deerflow.stores import KnowledgeBaseSearchStore, MarketplaceInstallStore
 from deerflow.tools.builtins import ask_clarification_tool, present_file_tool, task_tool, view_image_tool
 from deerflow.tools.builtins.tool_search import reset_deferred_registry
 
@@ -103,6 +103,13 @@ def get_available_tools(
     if model_config is not None and model_config.supports_vision:
         builtin_tools.append(view_image_tool)
         logger.info(f"Including view_image_tool for model '{model_name}' (supports_vision=True)")
+
+    # Knowledge base search — only available when KB store is registered
+    kb_store = get_store("kb_search")
+    if isinstance(kb_store, KnowledgeBaseSearchStore):
+        from deerflow.tools.builtins import knowledge_base_search_tool
+
+        builtin_tools.append(knowledge_base_search_tool)
 
     # Get cached MCP tools if enabled
     # NOTE: We use ExtensionsConfig.from_file() instead of config.extensions

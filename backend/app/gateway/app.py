@@ -28,6 +28,7 @@ from app.gateway.routers import (
     uploads,
     users,
 )
+from app.gateway.services.kb_search_store_pg import PostgresKBSearchStore
 from app.gateway.services.marketplace_install_store_pg import PostgresMarketplaceInstallStore
 from app.gateway.services.mcp_config_store_pg import PostgresMcpConfigStore
 from app.gateway.services.memory_store_pg import PostgresMemoryStore
@@ -77,6 +78,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     register_store("marketplace", PostgresMarketplaceInstallStore(async_session_factory))
     register_store("key", PostgresModelKeyResolver(async_session_factory, get_redis))
     register_store("usage", PostgresUsageRecordStore(async_session_factory))
+    register_store("kb_search", PostgresKBSearchStore(async_session_factory))
     logger.info("PG stores registered (%.1fs)", time.monotonic() - t1)
 
     # Ensure a stable local dev account exists (idempotent).

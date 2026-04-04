@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.gateway.auth import AuthContext, get_auth_context
 from app.gateway.db.database import get_db_session
-from app.gateway.db.models import Thread, ThreadRun
+from app.gateway.db.models import KnowledgeBase, Thread, ThreadKnowledgeBase, ThreadRun
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,17 @@ class ThreadRunUpdateRequest(BaseModel):
     sandbox_id: str | None = Field(default=None, max_length=100)
     error_message: str | None = None
     finished_at: datetime | None = None
+
+
+class ThreadKBBindRequest(BaseModel):
+    kb_ids: list[str] = Field(..., description="Knowledge base IDs to bind")
+
+
+class ThreadKBResponse(BaseModel):
+    id: str
+    kb_id: str
+    kb_name: str
+    created_at: str
 
 
 # ---------------------------------------------------------------------------
@@ -348,3 +359,79 @@ async def update_thread_run(
     await db.commit()
     await db.refresh(run)
     return _thread_run_to_response(run)
+
+
+# ---------------------------------------------------------------------------
+# Thread ↔ Knowledge Base binding endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{thread_id}/knowledge-bases", response_model=list[ThreadKBResponse], status_code=status.HTTP_201_CREATED)
+async def bind_knowledge_bases(
+    thread_id: str,
+    request: ThreadKBBindRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    db: AsyncSession = Depends(get_db_session),
+) -> list[ThreadKBResponse]:
+    thread = await _get_owned_thread(thread_id, auth, db)
+
+    created: list[ThreadKBResponse] = []
+    for kb_id in request.kb_ids:
+        # Verify KB exists and belongs to the same org
+        kb = await db.get(KnowledgeBase, kb_id)
+        if kb is None or kb.org_id != auth.org_id:
+            raise HTTPException(status_code=404, detail=f"Knowledge base {kb_id} not found")
+
+        # Skip duplicates
+        existing = await db.execute(
+            select(ThreadKnowledgeBase).where(ThreadKnowledgeBase.thread_id == thread.id, ThreadKnowledgeBase.kb_id == kb_id).limit(1)
+        )
+        if existing.scalar_one_or_none() is not None:
+            continue
+
+        link = ThreadKnowledgeBase(thread_id=thread.id, kb_id=kb_id)
+        db.add(link)
+        await db.flush()
+        await db.refresh(link)
+        created.append(ThreadKBResponse(id=link.id, kb_id=kb_id, kb_name=kb.name, created_at=link.created_at.isoformat() if link.created_at else ""))
+
+    await db.commit()
+    return created
+
+
+@router.get("/{thread_id}/knowledge-bases", response_model=list[ThreadKBResponse])
+async def list_thread_knowledge_bases(
+    thread_id: str,
+    auth: AuthContext = Depends(get_auth_context),
+    db: AsyncSession = Depends(get_db_session),
+) -> list[ThreadKBResponse]:
+    await _get_owned_thread(thread_id, auth, db)
+
+    stmt = select(ThreadKnowledgeBase, KnowledgeBase.name).join(KnowledgeBase, ThreadKnowledgeBase.kb_id == KnowledgeBase.id).where(ThreadKnowledgeBase.thread_id == thread_id)
+    result = await db.execute(stmt)
+    rows = result.all()
+    return [
+        ThreadKBResponse(id=link.id, kb_id=link.kb_id, kb_name=kb_name, created_at=link.created_at.isoformat() if link.created_at else "")
+        for link, kb_name in rows
+    ]
+
+
+@router.delete("/{thread_id}/knowledge-bases/{kb_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def unbind_knowledge_base(
+    thread_id: str,
+    kb_id: str,
+    auth: AuthContext = Depends(get_auth_context),
+    db: AsyncSession = Depends(get_db_session),
+) -> Response:
+    await _get_owned_thread(thread_id, auth, db)
+
+    result = await db.execute(
+        select(ThreadKnowledgeBase).where(ThreadKnowledgeBase.thread_id == thread_id, ThreadKnowledgeBase.kb_id == kb_id).limit(1)
+    )
+    link = result.scalar_one_or_none()
+    if link is None:
+        raise HTTPException(status_code=404, detail="Knowledge base binding not found")
+
+    await db.delete(link)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

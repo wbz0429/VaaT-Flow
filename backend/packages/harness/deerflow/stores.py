@@ -97,3 +97,13 @@ class UsageRecordStore(ABC):
         endpoint: str | None = None,
         duration_seconds: float = 0.0,
     ) -> None: ...
+
+
+class KnowledgeBaseSearchStore(ABC):
+    """Abstract store for searching knowledge base documents via RAG."""
+
+    @abstractmethod
+    async def search(self, kb_ids: list[str], query: str, top_k: int = 5) -> list[dict]: ...
+
+    @abstractmethod
+    async def list_knowledge_bases(self, org_id: str) -> list[dict]: ...
