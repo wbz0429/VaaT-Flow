@@ -14,6 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getUsageByOrg, getUsageSummary } from "@/core/admin/api";
 import type { OrgUsageBreakdown, UsageSummary } from "@/core/admin/types";
+import { useI18n } from "@/core/i18n/hooks";
 
 function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -25,6 +26,7 @@ export default function AdminUsagePage() {
   const [summary, setSummary] = useState<UsageSummary | null>(null);
   const [orgUsage, setOrgUsage] = useState<OrgUsageBreakdown[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
 
   useEffect(() => {
     Promise.all([getUsageSummary(), getUsageByOrg()])
@@ -41,7 +43,7 @@ export default function AdminUsagePage() {
   if (loading) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold">Usage</h1>
+        <h1 className="text-2xl font-semibold">{t.admin.usage}</h1>
         <div className="grid gap-4 sm:grid-cols-2">
           {Array.from({ length: 2 }).map((_, i) => (
             <Card key={i}>
@@ -72,9 +74,9 @@ export default function AdminUsagePage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Usage</h1>
+        <h1 className="text-2xl font-semibold">{t.admin.usage}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Global platform usage statistics
+          {t.admin.usagePerOrg}
         </p>
       </div>
 
@@ -82,7 +84,7 @@ export default function AdminUsagePage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader>
-            <CardDescription>Total Tokens</CardDescription>
+            <CardDescription>{t.admin.totalTokens}</CardDescription>
           </CardHeader>
           <CardContent>
               <CardTitle className="text-2xl tabular-nums">
@@ -92,7 +94,7 @@ export default function AdminUsagePage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>Total API Calls</CardDescription>
+            <CardDescription>{t.admin.totalApiCalls}</CardDescription>
           </CardHeader>
           <CardContent>
             <CardTitle className="text-2xl tabular-nums">
@@ -102,7 +104,7 @@ export default function AdminUsagePage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>Tokens Today</CardDescription>
+            <CardDescription>{t.admin.tokensToday}</CardDescription>
           </CardHeader>
           <CardContent>
               <CardTitle className="text-2xl tabular-nums">
@@ -112,7 +114,7 @@ export default function AdminUsagePage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>API Calls Today</CardDescription>
+            <CardDescription>{t.admin.apiCallsToday}</CardDescription>
           </CardHeader>
           <CardContent>
               <CardTitle className="text-2xl tabular-nums">
@@ -126,20 +128,20 @@ export default function AdminUsagePage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Token Usage by Organization</CardTitle>
-            <CardDescription>Input and output token breakdown</CardDescription>
+            <CardTitle>{t.admin.tokenUsageByOrg}</CardTitle>
+            <CardDescription>{t.admin.tokenUsageByOrgSubtitle}</CardDescription>
           </CardHeader>
           <CardContent>
             {tokenBars.length > 0 ? (
               <UsageChart
                 title=""
                 bars={tokenBars}
-                primaryLabel="Input tokens"
-                secondaryLabel="Output tokens"
+                primaryLabel={t.admin.inputTokens}
+                secondaryLabel={t.admin.outputTokens}
               />
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                No usage data yet
+                {t.admin.noUsageData}
               </p>
             )}
           </CardContent>
@@ -147,19 +149,19 @@ export default function AdminUsagePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>API Calls by Organization</CardTitle>
-            <CardDescription>Total API call volume</CardDescription>
+            <CardTitle>{t.admin.apiCallsByOrg}</CardTitle>
+            <CardDescription>{t.admin.apiCallsByOrgSubtitle}</CardDescription>
           </CardHeader>
           <CardContent>
             {apiCallBars.length > 0 ? (
               <UsageChart
                 title=""
                 bars={apiCallBars}
-                primaryLabel="API calls"
+                primaryLabel={t.admin.apiCalls}
               />
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                No usage data yet
+                {t.admin.noUsageData}
               </p>
             )}
           </CardContent>
@@ -170,18 +172,18 @@ export default function AdminUsagePage() {
       {orgUsage.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Detailed Breakdown</CardTitle>
-            <CardDescription>Usage per organization</CardDescription>
+            <CardTitle>{t.admin.detailedBreakdown}</CardTitle>
+            <CardDescription>{t.admin.usagePerOrg}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-medium">Organization</th>
-                    <th className="px-4 py-3 text-right font-medium">Input Tokens</th>
-                    <th className="px-4 py-3 text-right font-medium">Output Tokens</th>
-                    <th className="px-4 py-3 text-right font-medium">API Calls</th>
+                    <th className="px-4 py-3 text-left font-medium">{t.admin.organization}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t.admin.inputTokens}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t.admin.outputTokens}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t.admin.apiCalls}</th>
                   </tr>
                 </thead>
                 <tbody>

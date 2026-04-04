@@ -15,6 +15,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getUsageByOrg, getUsageSummary } from "@/core/admin/api";
 import type { OrgUsageBreakdown, UsageSummary } from "@/core/admin/types";
+import { useI18n } from "@/core/i18n/hooks";
 
 function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -26,6 +27,7 @@ export default function AdminDashboardPage() {
   const [summary, setSummary] = useState<UsageSummary | null>(null);
   const [orgUsage, setOrgUsage] = useState<OrgUsageBreakdown[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
 
   useEffect(() => {
     Promise.all([getUsageSummary(), getUsageByOrg()])
@@ -42,7 +44,7 @@ export default function AdminDashboardPage() {
   if (loading) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <h1 className="text-2xl font-semibold">{t.admin.dashboard}</h1>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
@@ -60,10 +62,10 @@ export default function AdminDashboardPage() {
   }
 
   const stats = [
-    { label: "Organizations", value: orgUsage.length, href: "/admin/organizations" },
-    { label: "Usage Records", value: summary?.record_count ?? 0 },
-    { label: "Input Tokens", value: summary?.total_input_tokens ?? 0, href: "/admin/usage" },
-    { label: "API Calls", value: summary?.total_api_calls ?? 0, href: "/admin/usage" },
+    { label: t.admin.organizations, value: orgUsage.length, href: "/admin/organizations" },
+    { label: t.admin.usageRecords, value: summary?.record_count ?? 0 },
+    { label: t.admin.inputTokens, value: summary?.total_input_tokens ?? 0, href: "/admin/usage" },
+    { label: t.admin.apiCalls, value: summary?.total_api_calls ?? 0, href: "/admin/usage" },
   ];
 
   const chartBars = orgUsage.slice(0, 10).map((o) => ({
@@ -75,7 +77,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <h1 className="text-2xl font-semibold">{t.admin.dashboard}</h1>
 
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -106,15 +108,15 @@ export default function AdminDashboardPage() {
       {chartBars.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Token Usage by Organization</CardTitle>
-            <CardDescription>Top 10 organizations by token consumption</CardDescription>
+            <CardTitle>{t.admin.tokenUsageByOrg}</CardTitle>
+            <CardDescription>{t.admin.tokenUsageByOrgSubtitle}</CardDescription>
           </CardHeader>
           <CardContent>
             <UsageChart
               title=""
               bars={chartBars}
-              primaryLabel="Input tokens"
-              secondaryLabel="Output tokens"
+              primaryLabel={t.admin.inputTokens}
+              secondaryLabel={t.admin.outputTokens}
             />
           </CardContent>
         </Card>

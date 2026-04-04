@@ -7,11 +7,13 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/core/i18n/hooks";
 import { useSearchKnowledgeBase } from "@/core/knowledge/hooks";
 import type { SearchResult } from "@/core/knowledge/types";
 
 export function SearchPanel({ kbId }: { kbId: string }) {
   const searchMutation = useSearchKnowledgeBase(kbId);
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
 
@@ -21,15 +23,15 @@ export function SearchPanel({ kbId }: { kbId: string }) {
       const data = await searchMutation.mutateAsync({ query: query.trim() });
       setResults(data);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Search failed");
+      toast.error(err instanceof Error ? err.message : t.toasts.failed);
     }
-  }, [query, searchMutation]);
+  }, [query, searchMutation, t]);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-2">
         <Input
-          placeholder="Search knowledge base..."
+          placeholder={t.knowledge.searchPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -41,14 +43,14 @@ export function SearchPanel({ kbId }: { kbId: string }) {
           disabled={!query.trim() || searchMutation.isPending}
         >
           <SearchIcon className="mr-1 size-4" />
-          {searchMutation.isPending ? "Searching..." : "Search"}
+          {searchMutation.isPending ? t.knowledge.searching : t.knowledge.searchButton}
         </Button>
       </div>
 
       {results.length > 0 && (
         <div className="flex flex-col gap-3">
           <p className="text-muted-foreground text-xs">
-            {results.length} result{results.length !== 1 ? "s" : ""}
+            {results.length} {results.length !== 1 ? t.knowledge.results : t.knowledge.result}
           </p>
           {results.map((result, i) => (
             <div
@@ -75,7 +77,7 @@ export function SearchPanel({ kbId }: { kbId: string }) {
         results.length === 0 &&
         searchMutation.isSuccess && (
           <div className="text-muted-foreground py-8 text-center text-sm">
-            No results found
+            {t.knowledge.noResults}
           </div>
         )}
     </div>

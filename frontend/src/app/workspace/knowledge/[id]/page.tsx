@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DocumentList } from "@/components/workspace/knowledge/document-list";
 import { DocumentUpload } from "@/components/workspace/knowledge/document-upload";
 import { SearchPanel } from "@/components/workspace/knowledge/search-panel";
+import { useI18n } from "@/core/i18n/hooks";
 import {
   useDeleteKnowledgeBase,
   useDocuments,
@@ -20,6 +21,7 @@ import {
 export default function KnowledgeBaseDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useI18n();
   const kbId = params.id;
   const { knowledgeBase, isLoading } = useKnowledgeBase(kbId);
   const { documents, isLoading: docsLoading } = useDocuments(kbId);
@@ -27,22 +29,22 @@ export default function KnowledgeBaseDetailPage() {
 
   const handleDelete = useCallback(async () => {
     if (!kbId) return;
-    if (!confirm("Delete this knowledge base and all its documents?")) return;
+    if (!confirm(t.knowledge.deleteConfirm)) return;
     try {
       await deleteMutation.mutateAsync(kbId);
-      toast.success("Knowledge base deleted");
+      toast.success(t.knowledge.deleted);
       router.push("/workspace/knowledge");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to delete knowledge base",
+        err instanceof Error ? err.message : t.knowledge.deleteFailed,
       );
     }
-  }, [kbId, deleteMutation, router]);
+  }, [kbId, deleteMutation, router, t.knowledge.deleteConfirm, t.knowledge.deleted, t.knowledge.deleteFailed]);
 
   if (isLoading) {
     return (
       <div className="text-muted-foreground flex items-center justify-center py-12 text-sm">
-        Loading...
+        {t.common.loading}
       </div>
     );
   }
@@ -50,7 +52,7 @@ export default function KnowledgeBaseDetailPage() {
   if (!knowledgeBase) {
     return (
       <div className="text-muted-foreground flex items-center justify-center py-12 text-sm">
-        Knowledge base not found
+        {t.knowledge.notFound}
       </div>
     );
   }
@@ -63,7 +65,7 @@ export default function KnowledgeBaseDetailPage() {
             variant="ghost"
             size="icon"
             onClick={() => router.push("/workspace/knowledge")}
-            aria-label="Back to knowledge bases"
+            aria-label={t.knowledge.backToList}
           >
             <ArrowLeftIcon className="size-4" />
           </Button>
@@ -84,7 +86,7 @@ export default function KnowledgeBaseDetailPage() {
           size="icon"
           onClick={handleDelete}
           disabled={deleteMutation.isPending}
-          aria-label="Delete knowledge base"
+          aria-label={t.knowledge.deleteConfirm}
           className="text-destructive hover:text-destructive"
         >
           <Trash2Icon className="size-4" />
@@ -94,8 +96,8 @@ export default function KnowledgeBaseDetailPage() {
       <Tabs defaultValue="documents" className="flex flex-1 flex-col">
         <div className="border-b px-6">
           <TabsList variant="line">
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="search">Search</TabsTrigger>
+            <TabsTrigger value="documents">{t.knowledge.documents}</TabsTrigger>
+            <TabsTrigger value="search">{t.knowledge.searchButton}</TabsTrigger>
           </TabsList>
         </div>
 

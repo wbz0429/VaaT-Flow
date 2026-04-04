@@ -267,6 +267,155 @@ export const enUS: Translations = {
     failed: "Subtask failed",
   },
 
+  // Auth
+  auth: {
+    signIn: "Sign in",
+    signInDescription: "Enter your email and password to continue",
+    signingIn: "Signing in\u2026",
+    signInFailed: "Sign in failed",
+    unexpectedError: "An unexpected error occurred",
+    email: "Email",
+    emailPlaceholder: "you@example.com",
+    password: "Password",
+    passwordPlaceholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+    noAccount: "Don\u2019t have an account?",
+    register: "Register",
+    createAccount: "Create an account",
+    createAccountDescription: "Enter your details to get started",
+    creatingAccount: "Creating account\u2026",
+    name: "Name",
+    namePlaceholder: "Your name",
+    alreadyHaveAccount: "Already have an account?",
+    localDevAccount: "Local dev account",
+    localDevEmail: "dev@allo.local",
+    localDevPassword: "Password123!",
+    fillLocalDev: "Fill local dev account",
+  },
+
+  // Landing
+  landing: {
+    brandName: "Allo",
+    brandSubtitle: "",
+    tagline:
+      "Your AI office assistant \u2014 research, code, analyze, create.\nFrom minutes to hours of work, Allo gets it done.",
+    cta: "Get Started",
+    withBrand: "with Allo",
+    capabilities: [
+      "Deep Research",
+      "Collect Data",
+      "Analyze Data",
+      "Generate Webpages",
+      "Vibe Coding",
+      "Generate Slides",
+      "Generate Images",
+      "Generate Podcasts",
+      "Generate Videos",
+      "Organize Emails",
+      "Do Anything",
+      "Learn Anything",
+    ],
+    caseStudies: "Case Studies",
+    caseStudiesSubtitle:
+      "See how Allo\uFF08\u5143\u67A2\uFF09 is used in the wild",
+    agentSkills: "Agent Skills",
+    agentSkillsDescription:
+      "Agent Skills are loaded progressively \u2014 only what\u2019s needed, when it\u2019s needed. Extend Allo with your own skill files, or use our built-in library.",
+    agentRuntime: "Agent Runtime Environment",
+    agentRuntimeDescription:
+      'We give Allo a "computer", which can execute commands, manage files, and run long tasks \u2014 all in a secure Docker-based sandbox',
+    secureRuntime: "Secure Runtime",
+    aioSandbox: "AIO Sandbox",
+    aioSandboxDescription:
+      "We recommend using All-in-One Sandbox that combines Browser, Shell, File, MCP and VSCode Server in a single Docker container.",
+    joinCommunity: "Join the Community",
+    communityDescription:
+      "Contribute brilliant ideas to shape the future of Allo\uFF08\u5143\u67A2\uFF09. Collaborate, innovate, and make impacts.",
+    contributeNow: "Contribute Now",
+  },
+
+  // Knowledge
+  knowledge: {
+    title: "Knowledge Bases",
+    createTitle: "Create Knowledge Base",
+    createDescription:
+      "A knowledge base stores documents for retrieval-augmented generation.",
+    name: "Name",
+    namePlaceholder: "e.g. Product Documentation",
+    description: "Description",
+    descriptionPlaceholder: "Optional description",
+    noKbs: "No knowledge bases yet",
+    createFirst: "Create your first",
+    created: "Knowledge base created",
+    deleted: "Knowledge base deleted",
+    deleteFailed: "Failed to delete knowledge base",
+    deleteConfirm: "Delete this knowledge base and all its documents?",
+    notFound: "Knowledge base not found",
+    backToList: "Back to knowledge bases",
+    documents: "Documents",
+    searchPlaceholder: "Search knowledge base...",
+    searching: "Searching...",
+    searchButton: "Search",
+    results: "results",
+    result: "result",
+    noResults: "No results found",
+  },
+
+  // Admin
+  admin: {
+    dashboard: "Dashboard",
+    organizations: "Organizations",
+    usage: "Usage",
+    platformAdmin: "Platform Admin",
+    backToWorkspace: "Back to Workspace",
+    checkingAccess: "Checking access...",
+    totalTokens: "Total Tokens",
+    totalApiCalls: "Total API Calls",
+    tokensToday: "Tokens Today",
+    apiCallsToday: "API Calls Today",
+    usageRecords: "Usage Records",
+    inputTokens: "Input Tokens",
+    outputTokens: "Output Tokens",
+    tokenUsageByOrg: "Token Usage by Organization",
+    tokenUsageByOrgSubtitle: "Top 10 organizations by token consumption",
+    apiCallsByOrg: "API Calls by Organization",
+    apiCallsByOrgSubtitle: "Total API call volume",
+    noUsageData: "No usage data yet",
+    detailedBreakdown: "Detailed Breakdown",
+    usagePerOrg: "Usage per organization",
+    organization: "Organization",
+    apiCalls: "API Calls",
+    manageOrgs: "Manage all organizations on the platform",
+    allOrganizations: "All Organizations",
+  },
+
+  // Soul
+  soul: {
+    personality: "Personality",
+    personalityDescription:
+      "Define your AI assistant's personality, tone, and behavior style. This is injected into every conversation.",
+    placeholder:
+      "e.g. You are a friendly and concise assistant who speaks in a casual tone...",
+    changesTakeEffect: "Changes take effect on the next conversation.",
+  },
+
+  // Toasts
+  toasts: {
+    created: "Created",
+    deleted: "Deleted",
+    saved: "Saved",
+    failed: "Failed",
+    toolInstalled: "Tool installed successfully",
+    toolInstallFailed: "Failed to install tool",
+    toolUninstalled: "Tool uninstalled",
+    toolUninstallFailed: "Failed to uninstall tool",
+    skillInstalled: "Skill installed successfully",
+    skillInstallFailed: "Failed to install skill",
+    skillUninstalled: "Skill uninstalled",
+    uploadFailed: "Upload failed",
+    copyFailed: "Failed to copy to clipboard",
+    modelConfigSaved: "Model configuration saved",
+  },
+
   // Settings
   settings: {
     title: "Settings",

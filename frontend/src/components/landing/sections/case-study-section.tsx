@@ -1,12 +1,16 @@
+"use client";
+
 import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
+import { useI18n } from "@/core/i18n/hooks";
 import { pathOfThread } from "@/core/threads/utils";
 import { cn } from "@/lib/utils";
 
 import { Section } from "../section";
 
 export function CaseStudySection({ className }: { className?: string }) {
+  const { t } = useI18n();
   const caseStudies = [
     {
       threadId: "7cfa5f8f-a2f8-47ad-acbd-da7137baf990",
@@ -48,8 +52,8 @@ export function CaseStudySection({ className }: { className?: string }) {
   return (
     <Section
       className={className}
-      title="Case Studies"
-      subtitle="See how Allo（元枢） is used in the wild"
+      title={t.landing.caseStudies}
+      subtitle={t.landing.caseStudiesSubtitle}
     >
       <div className="container-md mt-8 grid grid-cols-1 gap-4 px-20 md:grid-cols-2 lg:grid-cols-3">
         {caseStudies.map((caseStudy) => (

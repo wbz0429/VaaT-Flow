@@ -8,9 +8,11 @@ import { AuroraText } from "@/components/ui/aurora-text";
 import { Button } from "@/components/ui/button";
 import Galaxy from "@/components/ui/galaxy";
 import { WordRotate } from "@/components/ui/word-rotate";
+import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
 export function Hero({ className }: { className?: string }) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -48,7 +50,7 @@ export function Hero({ className }: { className?: string }) {
             </AuroraText>
           </h1>
           <p className="mt-2 text-center font-serif text-2xl tracking-widest text-white/50 md:text-3xl">
-            元枢
+            {t.landing.brandSubtitle}
           </p>
         </motion.div>
 
@@ -60,22 +62,9 @@ export function Hero({ className }: { className?: string }) {
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
         >
           <WordRotate
-            words={[
-              "Deep Research",
-              "Collect Data",
-              "Analyze Data",
-              "Generate Webpages",
-              "Vibe Coding",
-              "Generate Slides",
-              "Generate Images",
-              "Generate Podcasts",
-              "Generate Videos",
-              "Organize Emails",
-              "Do Anything",
-              "Learn Anything",
-            ]}
+            words={t.landing.capabilities}
           />
-          <span className="text-white/60">with Allo</span>
+          <span className="text-white/60">{t.landing.withBrand}</span>
         </motion.div>
 
         {/* Tagline in Chinese */}
@@ -86,9 +75,7 @@ export function Hero({ className }: { className?: string }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
         >
-          你的 AI 办公助手 — 调研、编程、分析、创作，
-          <br />
-          从几分钟到几小时的任务，元枢帮你搞定。
+          {t.landing.tagline}
         </motion.p>
 
         {/* CTA */}
@@ -103,7 +90,7 @@ export function Hero({ className }: { className?: string }) {
               size="lg"
               variant="outline"
             >
-              <span className="text-md">开始使用</span>
+              <span className="text-md">{t.landing.cta}</span>
               <ChevronRightIcon className="size-4" />
             </Button>
           </Link>

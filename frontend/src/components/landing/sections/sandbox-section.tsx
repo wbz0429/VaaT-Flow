@@ -5,19 +5,20 @@ import {
   Terminal,
   TypingAnimation,
 } from "@/components/ui/terminal";
+import { useI18n } from "@/core/i18n/hooks";
 
 import { Section } from "../section";
 
 export function SandboxSection({ className }: { className?: string }) {
+  const { t } = useI18n();
+
   return (
     <Section
       className={className}
-      title="Agent Runtime Environment"
+      title={t.landing.agentRuntime}
       subtitle={
         <p>
-          We give Allo a &quot;computer&quot;, which can execute commands,
-          manage files, and run long tasks — all in a secure Docker-based
-          sandbox
+          {t.landing.agentRuntimeDescription}
         </p>
       }
     >
@@ -72,7 +73,7 @@ export function SandboxSection({ className }: { className?: string }) {
         <div className="w-full flex-1 space-y-6">
           <div className="space-y-4">
             <p className="text-sm font-medium tracking-wider text-purple-400 uppercase">
-              Secure Runtime
+              {t.landing.secureRuntime}
             </p>
             <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">
               <a
@@ -80,24 +81,14 @@ export function SandboxSection({ className }: { className?: string }) {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                AIO Sandbox
+                {t.landing.aioSandbox}
               </a>
             </h2>
           </div>
 
           <div className="space-y-4 text-lg text-zinc-400">
             <p>
-              We recommend using{" "}
-              <a
-                href="https://github.com/agent-infra/sandbox"
-                className="underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                All-in-One Sandbox
-              </a>{" "}
-              that combines Browser, Shell, File, MCP and VSCode Server in a
-              single Docker container.
+              {t.landing.aioSandboxDescription}
             </p>
           </div>
 

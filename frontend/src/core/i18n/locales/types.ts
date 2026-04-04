@@ -204,6 +204,133 @@ export interface Translations {
     failed: string;
   };
 
+  // Auth
+  auth: {
+    signIn: string;
+    signInDescription: string;
+    signingIn: string;
+    signInFailed: string;
+    unexpectedError: string;
+    email: string;
+    emailPlaceholder: string;
+    password: string;
+    passwordPlaceholder: string;
+    noAccount: string;
+    register: string;
+    createAccount: string;
+    createAccountDescription: string;
+    creatingAccount: string;
+    name: string;
+    namePlaceholder: string;
+    alreadyHaveAccount: string;
+    localDevAccount: string;
+    localDevEmail: string;
+    localDevPassword: string;
+    fillLocalDev: string;
+  };
+
+  // Landing
+  landing: {
+    brandName: string;
+    brandSubtitle: string;
+    tagline: string;
+    cta: string;
+    withBrand: string;
+    capabilities: string[];
+    caseStudies: string;
+    caseStudiesSubtitle: string;
+    agentSkills: string;
+    agentSkillsDescription: string;
+    agentRuntime: string;
+    agentRuntimeDescription: string;
+    secureRuntime: string;
+    aioSandbox: string;
+    aioSandboxDescription: string;
+    joinCommunity: string;
+    communityDescription: string;
+    contributeNow: string;
+  };
+
+  // Knowledge
+  knowledge: {
+    title: string;
+    createTitle: string;
+    createDescription: string;
+    name: string;
+    namePlaceholder: string;
+    description: string;
+    descriptionPlaceholder: string;
+    noKbs: string;
+    createFirst: string;
+    created: string;
+    deleted: string;
+    deleteFailed: string;
+    deleteConfirm: string;
+    notFound: string;
+    backToList: string;
+    documents: string;
+    searchPlaceholder: string;
+    searching: string;
+    searchButton: string;
+    results: string;
+    result: string;
+    noResults: string;
+  };
+
+  // Admin
+  admin: {
+    dashboard: string;
+    organizations: string;
+    usage: string;
+    platformAdmin: string;
+    backToWorkspace: string;
+    checkingAccess: string;
+    totalTokens: string;
+    totalApiCalls: string;
+    tokensToday: string;
+    apiCallsToday: string;
+    usageRecords: string;
+    inputTokens: string;
+    outputTokens: string;
+    tokenUsageByOrg: string;
+    tokenUsageByOrgSubtitle: string;
+    apiCallsByOrg: string;
+    apiCallsByOrgSubtitle: string;
+    noUsageData: string;
+    detailedBreakdown: string;
+    usagePerOrg: string;
+    organization: string;
+    apiCalls: string;
+    manageOrgs: string;
+    allOrganizations: string;
+  };
+
+  // Soul
+  soul: {
+    personality: string;
+    personalityDescription: string;
+    placeholder: string;
+    changesTakeEffect: string;
+  };
+
+  // Toasts
+  toasts: {
+    created: string;
+    deleted: string;
+    saved: string;
+    failed: string;
+    toolInstalled: string;
+    toolInstallFailed: string;
+    toolUninstalled: string;
+    toolUninstallFailed: string;
+    skillInstalled: string;
+    skillInstallFailed: string;
+    skillUninstalled: string;
+    uploadFailed: string;
+    copyFailed: string;
+    modelConfigSaved: string;
+  };
+
   // Settings
   settings: {
     title: string;

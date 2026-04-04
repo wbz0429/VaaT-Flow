@@ -15,9 +15,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { register } from "@/core/auth/api";
+import { useI18n } from "@/core/i18n/hooks";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,13 +35,13 @@ export default function RegisterPage() {
       const result = await register(email, password, name);
 
       if (result.error) {
-        setError(result.error.message ?? "Registration failed");
+        setError(result.error.message ?? t.auth.signInFailed);
         return;
       }
 
       router.push("/workspace");
     } catch {
-      setError("An unexpected error occurred");
+      setError(t.auth.unexpectedError);
     } finally {
       setLoading(false);
     }
@@ -48,9 +50,9 @@ export default function RegisterPage() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle className="text-2xl">Create an account</CardTitle>
+        <CardTitle className="text-2xl">{t.auth.createAccount}</CardTitle>
         <CardDescription>
-          Enter your details to get started
+          {t.auth.createAccountDescription}
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -60,12 +62,12 @@ export default function RegisterPage() {
           )}
           <div className="flex flex-col gap-2">
             <label htmlFor="name" className="text-sm font-medium">
-              Name
+              {t.auth.name}
             </label>
             <Input
               id="name"
               type="text"
-              placeholder="Your name"
+              placeholder={t.auth.namePlaceholder}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -74,12 +76,12 @@ export default function RegisterPage() {
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="email" className="text-sm font-medium">
-              Email
+              {t.auth.email}
             </label>
             <Input
               id="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder={t.auth.emailPlaceholder}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -88,12 +90,12 @@ export default function RegisterPage() {
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="password" className="text-sm font-medium">
-              Password
+              {t.auth.password}
             </label>
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              placeholder={t.auth.passwordPlaceholder}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -104,12 +106,12 @@ export default function RegisterPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating account…" : "Create account"}
+            {loading ? t.auth.creatingAccount : t.auth.createAccount}
           </Button>
           <p className="text-sm text-muted-foreground">
-            Already have an account?{" "}
+            {t.auth.alreadyHaveAccount}{" "}
             <Link href="/login" className="text-primary underline underline-offset-2 hover:no-underline">
-              Sign in
+              {t.auth.signIn}
             </Link>
           </p>
         </CardFooter>

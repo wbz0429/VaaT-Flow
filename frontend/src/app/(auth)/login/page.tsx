@@ -15,9 +15,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { login } from "@/core/auth/api";
+import { useI18n } from "@/core/i18n/hooks";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -33,13 +35,13 @@ export default function LoginPage() {
       const result = await login(email, password);
 
       if (result.error) {
-        setError(result.error.message ?? "Sign in failed");
+        setError(result.error.message ?? t.auth.signInFailed);
         return;
       }
 
       router.push("/workspace");
     } catch {
-      setError("An unexpected error occurred");
+      setError(t.auth.unexpectedError);
     } finally {
       setLoading(false);
     }
@@ -48,9 +50,9 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle className="text-2xl">Sign in</CardTitle>
+        <CardTitle className="text-2xl">{t.auth.signIn}</CardTitle>
         <CardDescription>
-          Enter your email and password to continue
+          {t.auth.signInDescription}
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -60,9 +62,9 @@ export default function LoginPage() {
           )}
           {isDev && (
             <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-              <p className="font-medium text-amber-200">Local dev account</p>
-              <p className="mt-1 text-amber-100/90">Email: <code>dev@allo.local</code></p>
-              <p className="text-amber-100/90">Password: <code>Password123!</code></p>
+              <p className="font-medium text-amber-200">{t.auth.localDevAccount}</p>
+              <p className="mt-1 text-amber-100/90">{t.auth.email}: <code>{t.auth.localDevEmail}</code></p>
+              <p className="text-amber-100/90">{t.auth.password}: <code>{t.auth.localDevPassword}</code></p>
               <Button
                 type="button"
                 variant="outline"
@@ -73,18 +75,18 @@ export default function LoginPage() {
                   setError(null);
                 }}
               >
-                Fill local dev account
+                {t.auth.fillLocalDev}
               </Button>
             </div>
           )}
           <div className="flex flex-col gap-2">
             <label htmlFor="email" className="text-sm font-medium">
-              Email
+              {t.auth.email}
             </label>
             <Input
               id="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder={t.auth.emailPlaceholder}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -93,12 +95,12 @@ export default function LoginPage() {
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="password" className="text-sm font-medium">
-              Password
+              {t.auth.password}
             </label>
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              placeholder={t.auth.passwordPlaceholder}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -108,12 +110,12 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? t.auth.signingIn : t.auth.signIn}
           </Button>
           <p className="text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
+            {t.auth.noAccount}{" "}
             <Link href="/register" className="text-primary underline underline-offset-2 hover:no-underline">
-              Register
+              {t.auth.register}
             </Link>
           </p>
         </CardFooter>
