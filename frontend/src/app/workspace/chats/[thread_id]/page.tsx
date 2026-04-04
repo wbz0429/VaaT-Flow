@@ -12,6 +12,7 @@ import {
 import { InputBox } from "@/components/workspace/input-box";
 import { MessageList } from "@/components/workspace/messages";
 import { ThreadContext } from "@/components/workspace/messages/context";
+import { ThreadKBSettings } from "@/components/workspace/thread-kb-settings";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
 import { Welcome } from "@/components/workspace/welcome";
@@ -60,8 +61,9 @@ export default function ChatPage() {
   });
 
   const handleSubmit = useCallback(
-    (message: PromptInputMessage) => {
-      void sendMessage(threadId, message);
+    (message: PromptInputMessage, kbIds?: string[]) => {
+      const extraContext = kbIds?.length ? { kb_ids: kbIds } : undefined;
+      void sendMessage(threadId, message, extraContext);
     },
     [sendMessage, threadId],
   );
@@ -84,7 +86,8 @@ export default function ChatPage() {
             <div className="flex w-full items-center text-sm font-medium">
               <ThreadTitle threadId={threadId} thread={thread} />
             </div>
-            <div>
+            <div className="flex items-center gap-1">
+              <ThreadKBSettings threadId={threadId} />
               <ArtifactTrigger />
             </div>
           </header>

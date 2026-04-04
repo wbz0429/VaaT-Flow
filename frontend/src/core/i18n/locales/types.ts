@@ -275,6 +275,19 @@ export interface Translations {
     results: string;
     result: string;
     noResults: string;
+    threadKb: string;
+    threadKbDescription: string;
+    boundKbs: string;
+    availableKbs: string;
+    bind: string;
+    unbind: string;
+    noAvailableKbs: string;
+    noBoundKbs: string;
+    bindSuccess: string;
+    unbindSuccess: string;
+    bindFailed: string;
+    unbindFailed: string;
+    mentionKb: string;
   };
 
   // Admin

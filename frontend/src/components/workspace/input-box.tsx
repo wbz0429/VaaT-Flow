@@ -2,6 +2,7 @@
 
 import type { ChatStatus } from "ai";
 import {
+  BookOpenIcon,
   CheckIcon,
   GraduationCapIcon,
   LightbulbIcon,
@@ -40,6 +41,7 @@ import {
   usePromptInputController,
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfettiButton } from "@/components/ui/confetti-button";
 import {
@@ -57,6 +59,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getBackendBaseURL } from "@/core/config";
 import { useI18n } from "@/core/i18n/hooks";
+import { useKnowledgeBases } from "@/core/knowledge/hooks";
 import { useModels } from "@/core/models/hooks";
 import type { AgentThreadContext } from "@/core/threads";
 import { textOfMessage } from "@/core/threads/utils";
@@ -136,7 +139,7 @@ export function InputBox({
       reasoning_effort?: "minimal" | "low" | "medium" | "high";
     },
   ) => void;
-  onSubmit?: (message: PromptInputMessage) => void;
+  onSubmit?: (message: PromptInputMessage, kbIds?: string[]) => void;
   onStop?: () => void;
 }) {
   const { t } = useI18n();
@@ -157,6 +160,11 @@ export function InputBox({
   const [pendingSuggestion, setPendingSuggestion] = useState<string | null>(
     null,
   );
+
+  // KB @mention state
+  const [mentionedKbIds, setMentionedKbIds] = useState<string[]>([]);
+  const [kbMenuOpen, setKbMenuOpen] = useState(false);
+  const { knowledgeBases } = useKnowledgeBases();
 
   useEffect(() => {
     if (models.length === 0) {
@@ -246,9 +254,11 @@ export function InputBox({
       setFollowups([]);
       setFollowupsHidden(false);
       setFollowupsLoading(false);
-      onSubmit?.(message);
+      const kbIds = mentionedKbIds.length > 0 ? [...mentionedKbIds] : undefined;
+      setMentionedKbIds([]);
+      onSubmit?.(message, kbIds);
     },
-    [onSubmit, onStop, status],
+    [onSubmit, onStop, status, mentionedKbIds],
   );
 
   const requestFormSubmit = useCallback(() => {
@@ -394,6 +404,36 @@ export function InputBox({
         <PromptInputAttachments>
           {(attachment) => <PromptInputAttachment data={attachment} />}
         </PromptInputAttachments>
+        {mentionedKbIds.length > 0 && (
+          <div className="flex flex-wrap gap-1 px-3 pt-2">
+            {mentionedKbIds.map((kbId) => {
+              const kb = knowledgeBases.find((k) => k.id === kbId);
+              return (
+                <Badge
+                  key={kbId}
+                  variant="secondary"
+                  className="gap-1 pr-1 text-xs"
+                >
+                  <BookOpenIcon className="size-3" />
+                  <span className="max-w-24 truncate">
+                    {kb?.name ?? kbId}
+                  </span>
+                  <button
+                    type="button"
+                    className="hover:text-destructive ml-0.5 rounded-full"
+                    onClick={() =>
+                      setMentionedKbIds((prev) =>
+                        prev.filter((id) => id !== kbId),
+                      )
+                    }
+                  >
+                    <XIcon className="size-3" />
+                  </button>
+                </Badge>
+              );
+            })}
+          </div>
+        )}
         <PromptInputBody className="absolute top-0 right-0 left-0 z-3">
           <PromptInputTextarea
             className={cn("size-full")}
@@ -415,6 +455,45 @@ export function InputBox({
             </PromptInputActionMenuContent>
           </PromptInputActionMenu> */}
           <AddAttachmentsButton className="px-2!" />
+          {knowledgeBases.length > 0 && (
+            <DropdownMenu open={kbMenuOpen} onOpenChange={setKbMenuOpen}>
+              <Tooltip content={t.knowledge.mentionKb}>
+                <DropdownMenuTrigger asChild>
+                  <PromptInputButton className="px-2!">
+                    <BookOpenIcon className="size-3" />
+                  </PromptInputButton>
+                </DropdownMenuTrigger>
+              </Tooltip>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel className="text-muted-foreground text-xs">
+                  {t.knowledge.mentionKb}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {knowledgeBases.map((kb) => (
+                  <DropdownMenuItem
+                    key={kb.id}
+                    className={cn(
+                      mentionedKbIds.includes(kb.id) && "bg-accent",
+                    )}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setMentionedKbIds((prev) =>
+                        prev.includes(kb.id)
+                          ? prev.filter((id) => id !== kb.id)
+                          : [...prev, kb.id],
+                      );
+                    }}
+                  >
+                    <BookOpenIcon className="size-3" />
+                    <span className="truncate">{kb.name}</span>
+                    {mentionedKbIds.includes(kb.id) && (
+                      <CheckIcon className="ml-auto size-3" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <PromptInputActionMenu>
             <ModeHoverGuide
               mode={
