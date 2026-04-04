@@ -51,16 +51,9 @@ export async function getUsageSummary(): Promise<UsageSummary> {
 }
 
 export async function getUsageByOrg(): Promise<OrgUsageBreakdown[]> {
-  const res = await fetch(`${getBackendBaseURL()}/api/admin/organizations`, {
+  const res = await fetch(`${getBackendBaseURL()}/api/admin/usage/by-org`, {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`Failed to get usage by org: ${res.statusText}`);
-  const orgs = (await res.json()) as OrgSummary[];
-  return orgs.map((org) => ({
-    org_id: org.id,
-    org_name: org.name,
-    input_tokens: 0,
-    output_tokens: 0,
-    api_calls: 0,
-  }));
+  return res.json() as Promise<OrgUsageBreakdown[]>;
 }

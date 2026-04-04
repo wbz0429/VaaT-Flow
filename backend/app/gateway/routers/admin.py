@@ -73,6 +73,16 @@ class UsageStatsResponse(BaseModel):
     record_count: int
 
 
+class OrgUsageBreakdown(BaseModel):
+    """Per-organization usage breakdown."""
+
+    org_id: str
+    org_name: str
+    input_tokens: int
+    output_tokens: int
+    api_calls: int
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -198,6 +208,45 @@ async def get_platform_usage(
         total_sandbox_seconds=float(row.total_sandbox_seconds),
         record_count=row.record_count,
     )
+
+
+@router.get("/usage/by-org", response_model=list[OrgUsageBreakdown], summary="Get Usage Breakdown by Organization")
+async def get_usage_by_org(
+    auth: AuthContext = Depends(get_auth_context),
+    db: AsyncSession = Depends(get_db_session),
+) -> list[OrgUsageBreakdown]:
+    """Get aggregated token and API call usage grouped by organization (platform admin only)."""
+    _require_platform_admin(auth)
+
+    # Aggregate usage per org
+    usage_stmt = (
+        select(
+            UsageRecord.org_id,
+            func.coalesce(func.sum(UsageRecord.input_tokens), 0).label("input_tokens"),
+            func.coalesce(func.sum(UsageRecord.output_tokens), 0).label("output_tokens"),
+            func.count().label("api_calls"),
+        )
+        .select_from(UsageRecord)
+        .group_by(UsageRecord.org_id)
+    )
+    usage_result = await db.execute(usage_stmt)
+    usage_rows = {row.org_id: row for row in usage_result.all()}
+
+    # Fetch org names
+    org_stmt = select(Organization.id, Organization.name)
+    org_result = await db.execute(org_stmt)
+    orgs = {row.id: row.name for row in org_result.all()}
+
+    return [
+        OrgUsageBreakdown(
+            org_id=org_id,
+            org_name=orgs.get(org_id, org_id),
+            input_tokens=int(row.input_tokens),
+            output_tokens=int(row.output_tokens),
+            api_calls=int(row.api_calls),
+        )
+        for org_id, row in usage_rows.items()
+    ]
 
 
 # ---------------------------------------------------------------------------

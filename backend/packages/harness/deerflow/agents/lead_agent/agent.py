@@ -14,6 +14,7 @@ from deerflow.agents.middlewares.research_budget_middleware import ResearchBudge
 from deerflow.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
 from deerflow.agents.middlewares.title_middleware import TitleMiddleware
 from deerflow.agents.middlewares.todo_middleware import TodoMiddleware
+from deerflow.agents.middlewares.token_usage_middleware import TokenUsageMiddleware
 from deerflow.agents.middlewares.tool_error_handling_middleware import build_lead_runtime_middlewares
 from deerflow.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from deerflow.agents.thread_state import ThreadState
@@ -289,6 +290,9 @@ def _build_middlewares(
     if subagent_enabled:
         max_concurrent_subagents = config.get("configurable", {}).get("max_concurrent_subagents", 3)
         middlewares.append(SubagentLimitMiddleware(max_concurrent=max_concurrent_subagents))
+
+    # TokenUsageMiddleware — capture LLM token usage and record via UsageRecordStore
+    middlewares.append(TokenUsageMiddleware())
 
     # ResearchBudgetMiddleware — enforce cumulative web_search/web_fetch limits
     middlewares.append(ResearchBudgetMiddleware())

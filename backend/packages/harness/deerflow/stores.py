@@ -80,3 +80,20 @@ class ModelKeyResolver(ABC):
     async def resolve_key(self, run_id: str) -> tuple[str, str | None]: ...
 
     # returns (api_key, base_url | None)
+
+
+class UsageRecordStore(ABC):
+    """Abstract store for recording LLM token usage and API call metrics."""
+
+    @abstractmethod
+    async def record_usage(
+        self,
+        org_id: str,
+        user_id: str,
+        record_type: str,
+        model_name: str | None = None,
+        input_tokens: int = 0,
+        output_tokens: int = 0,
+        endpoint: str | None = None,
+        duration_seconds: float = 0.0,
+    ) -> None: ...
